@@ -1,0 +1,18 @@
+i = int(input('How many Fibonacci Numbers to generate: '))
+
+    
+
+def fibonacci(i):
+    a = 1
+    print(a)
+    b = 1
+    print(b)
+    for l in range(i):
+        x = a + b
+        print(x)
+        z = b + x
+        print(z)
+        a = x
+        b = z
+
+fibonacci(i)
