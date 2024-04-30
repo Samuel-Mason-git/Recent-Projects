@@ -1,0 +1,49 @@
+L = []
+
+
+def PrimeCheck(start, end):
+    for num in range(start, end):
+        is_prime = True
+        for i in range(2, num):  # start from 2
+            if num % i == 0:
+                is_prime = False  # num is divisible by i so not prime
+                break  # No need to check further
+        if is_prime:
+            print(f'{num} is Prime')
+            L.append(num)
+        else:
+            print(f'{num} is Not Prime')
+PrimeCheck(7543, 2424242424)
+print('Prime Numbers:',L)
+
+
+
+
+def listcreation():
+    listsize = 500
+    L = [*range(3, listsize + 1)]
+    print(L)
+    x = set(L)
+
+    Twos = set(L[1::2]) #Filter out multiples of Two
+    print(Twos)
+    Threes = set(L[::3]) #Filter out multiples of Three
+    print(Threes)
+    Fives = set(L[7::5]) #Filter out multiples of Five
+    print(Fives)
+    Sevens = set(L[11::7]) #Filter out multiples of Five
+    print(Sevens)
+
+
+    primes = x - Twos - Threes - Fives - Sevens
+    P = list(primes)
+    P.append(2)
+    P.sort()
+    print('\n',P)
+    return P
+
+
+
+
+    
+listcreation()
