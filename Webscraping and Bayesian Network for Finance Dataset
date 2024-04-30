@@ -1,0 +1,1220 @@
+#Crawling Check, This is an extra part to Q1
+'''
+Function to check if site is crawlable
+I made this before it was mentioned that there would be no Robots.txt file for the site
+This function would just return the User-Agent * details to easily see if we can crawl it
+'''
+def CheckCrawl(url):
+    #Error Checking URL
+    try:
+        #Ensure that the URL has a / to conjugate the robots.txt correctly
+        if not url.endswith('/'):
+            url += '/'
+
+        #Joining the Primary Domain with the Sub Domain "Robots.txt":
+        roboturl = url + "robots.txt"
+        print(f'Checking Robots.txt URL: {roboturl}')
+
+        #Requesting the page using Requests:
+        page = requests.get(roboturl)
+
+        #Checking if the page is live by checking the status code of the site:
+        if page.status_code == 200:
+            print("Page Status Code is 200, continuing checks...")
+
+            #Passing the robot.txt file (We cant use BeautifulSoup as the file is .txt not .html):
+            rcontent = page.content.decode('utf-8')
+
+            #Storing the seperate lines in the file in a list:
+            lines = []
+            #Splitting based on each new line
+            for i in rcontent.split('\n'):
+                #Appending the stripped lines into the list
+                line = i.strip()
+                lines.append(line)
+
+            count = 0
+            #Loop through robot.txt lines and check for user agent line
+            for line in lines:
+                if line.startswith("User-agent"):
+                    splitline = line.split(' ')
+                    #Checking if user agent is available
+                    if splitline[1] == '*':
+                        #Change the count so it only prints for the section of Agent *
+                        count = 1
+                        print('--------------------------------\nUser-Agent * details: \n --------------------------------')
+                        print(line)
+                    #Keep count 0 so it doesnt print unless is * User-Agent
+                    else:
+                        count = 0
+                elif line.startswith("Allow"):
+                    if count == 1:
+                        print(line)
+                elif line.startswith("Disallow"):
+                    if count == 1:
+                        print(line)
+                elif line.startswith("Crawl-delay"):
+                    if count == 1:
+                        print(line)
+
+            if count == 0:
+                print('No User-Agent * was found')
+
+            #Give the user option to see the rest of the robots.txt file or exit the function
+            while True:
+                rest = input('Would you like to see the rest of the Robot.txt file? (Yes/No): ')
+                rest = rest.lower()
+                if rest == 'yes':
+                    for line in lines:
+                        print(line)
+                elif rest == 'no':
+                    print('Exiting Program', '\n')
+                    break
+                else:
+                    print('Please enter either Yes/No')
+
+    #Error handling
+    except Exception as e:
+        print(f"Error: {e}")
+        print('Please enter another Primary URL, check URL is correct and is only Primary Domain')
+
+
+#Check Robots.txt of Primary Domain, this function will show just the User Agent = * Details
+CheckCrawl("https://www.linkedin.com") #This is an example
+
+#New Section-----------------------------------------------------------------------------------------------
+
+#Crawling Functions:
+def WebScrape(url):
+    #Allow for time between calls on WebScraping:
+    time.sleep(0)
+    try:
+        page = requests.get(url, verify=False)
+        soup = BeautifulSoup(page.content, "html.parser")
+        if soup != None:
+            return soup
+        else:
+            raise ValueError(f"Unable to fetch result for {url}")
+    except:
+        #Returns Error if failed:
+        return f"Error with: {url}"
+
+#Making a function to pull the text elements from soup:
+def FindTextOption(soup):
+    #Extract all <p> elements with class "TextOption"
+    paragraph_elements = soup.find_all('p', class_='TextOption')
+
+    if paragraph_elements != None:
+        #Extract the Paragraph tag that contains the 'Topics' list:
+        for paragraph in paragraph_elements:
+            if "Topic" in paragraph.text:
+                return paragraph
+        #Tell the user that the paragraph element was not found
+    else:
+        print('Paragraph tag containing Topic Hrefs not found!')
+
+
+#New Section-----------------------------------------------------------------------------------------------    
+    
+# Crawling the Publication Topic URLs from the Homepage
+#Topic Page list
+Publication_Topic_Pages = []
+#So the tag check knows if no Publication Page Link Was Returned
+CheckingCounter = 0
+
+#Getting the first publication link from the homepage
+Homepage = WebScrape("https://sitescrape.awh.durham.ac.uk/comp42315/")
+print('Beginning scraping index.htm page for "navigator" tag...')
+divfind = Homepage.find('div', class_='navigator')
+if divfind != None:
+    print('Navigator Div Tag Found!')
+    A_Tags = divfind.find_all('a')
+    print('a href Tags in Div Navigator Found!')
+    if A_Tags != None:
+        for tag in A_Tags:
+            local_Topic_Page_link = tag.get('href')
+            if 'publication' in local_Topic_Page_link:
+                global_topic_page_link = "https://sitescrape.awh.durham.ac.uk/comp42315/" + local_Topic_Page_link
+                Publication_Topic_Pages.append(global_topic_page_link)
+                CheckingCounter += 1
+                print(f'Publication Page Link Found: {global_topic_page_link}')
+                print('Extracting Link')
+
+                print('Scraping Publication Page for Topic URLs...')
+                #Use the function to return the Topic Href Tags paragraph element
+                #This already has error checking built in the function
+                TopicsTags = FindTextOption(WebScrape(global_topic_page_link))
+
+                #Extract the link for the topics
+                for link in TopicsTags.find_all('a'):
+                    if link != None:
+                        #Collecting the local link
+                        local_link = (link.get('href'))
+                        #Converting to a global link
+                        global_link = "https://sitescrape.awh.durham.ac.uk/comp42315/" + local_link
+                        #Appending the link to the Publication_Topic_Pages
+                        Publication_Topic_Pages.append(global_link)
+                    else:
+                        print('Topic Link not found!')
+    else:
+        print('A Href Link Element not Found')
+else:
+    print('Div Navigation Element not Found')
+#Letting user know that Tag was not found if number doesnt increase
+if CheckingCounter != 1:
+    print('Publication link URL not found on Homepage in Navigation section')
+
+#Check all topic pages have been scraped, this part would have to be manual as no access to sitemap
+print(f'A total of {len(Publication_Topic_Pages)} Topic Page URLs have been scraped:')
+for i in Publication_Topic_Pages:
+    print(i)
+
+#New Section-----------------------------------------------------------------------------------------------
+    
+print('\n')
+print('Scanning Topic URL Pages:')
+
+# Extracting All Unique Publication URLs from all Topic Links Q1
+#Making a list of all publication URLs that are extracted
+Individual_Publication_URLs = []
+
+Counter = 0
+
+#Making a dictionary for Q2 to log which topics from each URL
+TopicLogging = {}
+
+#A counter to check how many URLs are successfully passed
+Page_Scrape_Counter = 0
+
+#Cycle through the list of Publication Topic URLs and Pass each URL into the Web Scraper
+for Publication_Topic_URL in Publication_Topic_Pages:
+
+    #Dictionary for the URL's for each topic page
+    UrlsPerTopic = []
+
+    Publication_Topic_Page_Content = WebScrape(Publication_Topic_URL)
+
+    #Find the Div elements containing the class_="ImgIconPublicationDiv"
+    Div_Publications = Publication_Topic_Page_Content.find_all('div', class_="ImgIconPublicationDiv")
+    if Div_Publications != None:
+        #print(f'Div Publication Element Found for: {Publication_Topic_URL}')
+        #Add a successful Div element found to the counter
+        Page_Scrape_Counter += 1
+
+        #Cycle through the div elements
+        for Div_Publication in Div_Publications:
+            #Pull the A Hrefs
+            URL_Publication = Div_Publication.find('a', href=True)
+            if URL_Publication != None:
+                #print(f'Url Publication Found for: {Publication_Topic_URL}...')
+                #Get the Hrefs alone
+                Local_Publication_URL = URL_Publication['href']
+                if Local_Publication_URL != None:
+                    #Turn local URLs into Global URLs
+                    #print('Local Publication URL link extracted...')
+                    global_Publication_URL = "https://sitescrape.awh.durham.ac.uk/comp42315/" + Local_Publication_URL
+                    #print('Global Link Generated...')
+                    #Append the list with the global URL
+                    Individual_Publication_URLs.append(global_Publication_URL)
+                    #print('Publication URL Succesfully extracted!')
+                    UrlsPerTopic.append(global_Publication_URL)
+
+                else:
+                    print(f'A Href link could not be found for: {Publication_Topic_URL}')
+            else:
+                print(f'A Href link could not be found for: {Publication_Topic_URL}')
+
+        #Making a dictionary for all the URLs for each topic
+        TopicLogging[Publication_Topic_URL] = UrlsPerTopic
+        Counter += 1
+        print(f'{Counter}/{len(Publication_Topic_Pages)} Topic Pages Scanned')
+
+    else:
+        print(f'Could not find Div Element for: {Publication_Topic_URL}')
+
+print('\n')
+#Checks if all of the Publication Topic URLs successfully had their Div Elements extracted and tells the user the result
+if Page_Scrape_Counter == len(Publication_Topic_Pages):
+    print('Number of Successful Div Elements Extracted equals the Length of List Element containing Publication Topic Pages!')
+else:
+    print('Error, Number of Successful Div Element extractions does not equal the Length of List Element containing Publication Topic Pages')
+
+#Removing any duplicate Publications
+Individual_Publication_URLs = list(set(Individual_Publication_URLs))
+print('\nRemoving Duplicates...\n')
+
+#Tells the user the total number of Unique Individual Publication URLs found
+print(f'A total of {len(Individual_Publication_URLs)} Individual Publication URLs have been found')
+
+# Extracting Title, Year and Author list Q1
+print('\nBeginning Extraction of: Title, Year and Author list From Publications:')
+#Making A dictionary to store all of the Data from each Journal
+SuccessCounter = 0
+URLs_Scanned = 0
+failedurls = []
+Publications = {}
+
+#Looping through our List of Unique Publication URLs
+for URL in Individual_Publication_URLs:
+    PublicationDetails = {
+        'Publication Title': '',
+        'Publication Year': '',
+        'Publication Authors': '',
+        'Publication Author Count': '',
+    }
+
+    #This has error checking in the function
+    Publication_Content = WebScrape(URL)
+    #Extract the title HTML tag
+    Publication_Title = Publication_Content.find('title')
+    #Error check
+    if Publication_Title != None:
+        #Strip and get the title text not BeautifulSoup element
+        Publication_Title_Get_Text = Publication_Title.get_text(strip=True)
+
+        #Check to see if the breaking element is in the variable
+        if '|' in Publication_Title_Get_Text:
+            #Split the variable from '|'
+            Split_Publication_Title = Publication_Title_Get_Text.split('|')
+
+            #Check to see if ' COMP42315 Assignment Site for Crawling' is in the list, we check for this in case there are numerous '|' elements in the title
+            if ' COMP42315 Assignment Site for Crawling' in Split_Publication_Title:
+                #Remove it from the list
+                Split_Publication_Title.remove(' COMP42315 Assignment Site for Crawling')
+                #Turn the list back to string
+                Publication_Title_Final = ' '.join(Split_Publication_Title)
+                #Add to the success counter so we can make sure it has worked
+                SuccessCounter += 1
+                #print(f'Title Found: {Publication_Title_Final}')
+            else:
+                print(f'"COMP42315 Assignment Site for Crawling" not found in title for: {URL}')
+                Publication_Title_Final = 'N/A'
+                failedurls.append(URL)
+        #Add N/A as the title so we can check for it later
+        else:
+            print(f'Error: "|" character not found in title for {URL}')
+            Publication_Title_Final = 'N/A'
+            failedurls.append(URL)
+    else:
+        print(f'Error finding title for {URL}')
+        Publication_Title_Final = 'N/A'
+        failedurls.append(URL)
+
+    PlainTextfound = 0
+
+    #I only noticed this after making the title finder, so I will use both
+    #Find the p element with the plaintext of the content
+    PlainText = Publication_Content.find_all('p', class_='TextSmall')
+    #print(f'The number of P elements: {len(PlainText)}')
+    if PlainText != None:
+        #Cycle through the paragraph elements to find the one with the year and author in
+        for para in PlainText:
+            if 'author=' in para.text.lower() and 'year=' in para.text.lower():
+
+                #Extracting the Year Variable
+                year_start = para.text.find('year=') + len('year={')
+                if para.text.find('year=') != -1:
+                    year_end = para.text.find('}', year_start)
+                    if para.text.find('}') != -1:
+                        year = para.text[year_start:year_end]
+                        if len(year) == 4 and year.isdigit():
+                            PlainTextfound += 1
+                            #print(f'Year Found: {year}')
+                        else:
+                            print('Year variable was not 4 numbers for: {URL}')
+                            failedurls.append(URL)
+                    else:
+                        print('Year end could not be found for: {URL}')
+                        failedurls.append(URL)
+                else:
+                    print('Year start could not be found for: {URL}')
+                    failedurls.append(URL)
+
+                #Extracting Authors Variable
+                authors_start = para.text.find('author=') + len('author={')
+
+                if para.text.find('author=') != -1:
+                    author_end = para.text.find('}', authors_start)
+
+                    if para.text.find('}') != -1:
+                        Authors = para.text[authors_start:author_end]
+                        PlainTextfound += 1
+                        #print(f'Authors Found: {Authors}')
+                    else:
+                        print(f'Author end could not be found for {URL}')
+                        failedurls.append(URL)
+                else:
+                    print(f'Author start could not be found for {URL}')
+                    failedurls.append(URL)
+
+    else:
+        print(f'Could not find PlainText element in {URL}')
+        failedurls.append(URL)
+
+    if PlainTextfound != 2:
+        print(f'PlainText Info did not find all Elements in {URL}')
+        failedurls.append(URL)
+    else:
+        PlainTextfound = 0
+
+        URLs_Scanned += 1
+        print(f'Publication: {URLs_Scanned}/{len(Individual_Publication_URLs)} Scanned')
+
+    #Add the final title to the Publication Details Dictionary
+    PublicationDetails['Publication Title'] = Publication_Title_Final
+    PublicationDetails['Publication Year'] = year
+    PublicationDetails['Publication Authors'] = Authors
+    Publications[URL] = PublicationDetails
+
+#Removing any duplicate failed URLs
+failedurls = list(set(failedurls))
+
+#Checking to see if the length of the publications dictionary is the length of all the publication URLS and that failed URLs length == 0
+if len(Publications) == len(Individual_Publication_URLs) and len(failedurls) == 0:
+    #for url, pub in Publications.items():
+        #print(f'\nURL:{url} ')
+        #print(f'Title: {pub["Publication Title"]}')
+        #print(f'Authors: {pub["Publication Authors"]}')
+        #print(f'Year: {pub["Publication Year"]}')
+        #print(f'Author Count: {pub["Publication Author Count"]}')
+
+    print(f'\n{len(Publications)}/{len(Individual_Publication_URLs)} Publications completed with a total of {len(failedurls)}/{len(Individual_Publication_URLs)} publication failures.')
+else:
+    if len(failedurls) > 0:
+        print('There was an error with one of the URLS')
+        print(f'{len(Publications)}/{len(Individual_Publication_URLs)} with a total of {len(failedurls)} publication failures.')
+        #Printing them if they did fail
+        print('Failed URLs:')
+        for i in failedurls:
+            print(i)
+
+#New Section-----------------------------------------------------------------------------------------------            
+
+#Alogirthm for number of Authors Q1
+print('\nCalculating Number of Authors')
+#A checking counter for failures
+Failrate = 0
+#A checking count for success
+CountCheck = 0
+#A list for failed publications to be appended too
+failedpublist = []
+
+#Cycle through the urls and publication
+for url, pub in Publications.items():
+    #Split the authors based on 'and'
+    split_authors  = pub["Publication Authors"].split('and')
+    #Count the length after splitting
+    author_count = len(split_authors)
+
+    #If the author count is longer than 0
+    if author_count > 0:
+        #Append the author count
+        pub["Publication Author Count"] = author_count
+
+        #Print off the finalized dictionary
+        #print(f'\nURL:{url} ')
+        #print(f'Title: {pub["Publication Title"]}')
+        #print(f'Authors: {pub["Publication Authors"]}')
+        #print(f'Year: {pub["Publication Year"]}')
+        #print(f'Author Count: {pub["Publication Author Count"]}')
+
+        CountCheck += 1
+        print(f'Author Count Calulated: {CountCheck}/{len(Publications)}')
+
+    #Error check in case no authors were found
+    else:
+        print(f'Error with Author Count in: {url}')
+        Failrate += 1
+        failedpublist.append(url)
+
+#Check to see if any failures
+if Failrate == 0:
+    print(f'\nAuthor count addition successful, {Failrate} failures.')
+    print(f'{CountCheck}/{len(Publications)} Author counts updated.')
+else:
+    #prints off fail rate and the author counts
+    print(f'There was an error with {Failrate} of the Author Counts')
+    print('Failed Author Count URLs:')
+    #prints failed URLs
+    for i in failedpublist:
+        print(i)
+        
+        
+#Table for Q1
+#Change from dictionary to List
+ListofData = []
+
+#Add items in dictionary to each list element
+for url, pub in Publications.items():
+    row_data = {
+        'Title': pub["Publication Title"],
+        'Year': pub["Publication Year"],
+        'Authors': pub["Publication Authors"],
+        'Author Count': pub["Publication Author Count"]}
+    ListofData.append(row_data)
+
+#Turn the list into a Pandas Dataframe
+table = pd.DataFrame(ListofData)
+
+#Sort the table
+table = table.sort_values(by=['Year', 'Author Count', 'Title'], ascending=[False, False, True])
+
+#Insert in column 0, title 'Row' with a range starting at 1 to the length of the dataframe + 1
+table.insert(0, 'Row', range(1, len(table) + 1))
+
+#Checking for missing values
+if table.isnull().values.any():
+    print('Data is missing from table')
+else:
+    print('Table has 0 Null Values...')
+    
+
+    while True:
+        try:
+            toprint = str(input('Would you like to print the table?\n"Y" for Yes or any other key to exit: '))
+            toprint = toprint.lower()
+            if toprint == 'y' or toprint == 'yes':
+                to_print = table.copy()
+                to_print = to_print.drop(columns=['Row']).reset_index(drop=True)
+                display(to_print)
+                break
+            else:
+                break
+        except:
+            print('Incorrect input please enter again')
+
+
+#Crawling and extracting Journal Publications
+print('Beginning Crawling and Extraction of Journal Publications...')
+print('Crawling Topic URLs:')
+#Extract all journal paper URL's scraping topic URLs and a count to check how many
+countpublicationcheck = 0
+Journal_Publications = []
+
+#Creating a list of failed topics with no Journal Publication found
+No_Find_Journal = []
+
+#Looping through the individual URLs in the topic page URLS
+for individual_page in Publication_Topic_Pages:
+    #New list of Journal Publications
+    JournalPublicationsOnPage = []
+    #Passing the page URL through the WebScrape function to return soup page content
+    Topic_content = WebScrape(individual_page)
+    #Error checking
+    if Topic_content != None:
+        #Searching for the H2 tag with the ID of 'Journal Papers'
+        Journal_Id = Topic_content.find('h2', id="Journal Papers")
+        if Journal_Id != None:
+            #Finding the next div element
+            Next_Element = Journal_Id.find_next_sibling('div', style="margin-left: var(--size-marginleft)")
+            if Next_Element != None:
+                #Finding all the divs with the specific class element
+                Divs_with_Links = Next_Element.find_all('div', class_='ImgIconPublicationDiv')
+                if Divs_with_Links != None:
+                    #Looping through all the found Div elements with Links
+                    for Div in Divs_with_Links:
+                        #Extracting all the Hrefs to a new variable
+                        Div_Hrefs = Div.find_all('a', href=True)
+                        #Looping through the Hrefs
+                        for A_Tag in Div_Hrefs:
+                            #Creating a local tag
+                            Local_A_Tag = A_Tag.get('href')
+                            #creating a global tag
+                            Global_A_Tag = 'https://sitescrape.awh.durham.ac.uk/comp42315/' + Local_A_Tag
+                            #Appending to the two lists
+                            JournalPublicationsOnPage.append(Global_A_Tag)
+                            Journal_Publications.append(Global_A_Tag)
+                            #Printing the failed stage and appending the Failed Journal list to print at the end for checking
+                else:
+                    print(f'Could not retrieve ImgIconPublicationDiv for Topic Page: {individual_page}')
+                    No_Find_Journal.append(individual_page)
+            else:
+                print(f'Could not retrieve Joural Papers Div for Topic Page: {individual_page}')
+                No_Find_Journal.append(individual_page)
+        else:
+            print(f'Could not retrieve Journal Papers H2 for Topic Page: {individual_page}')
+            No_Find_Journal.append(individual_page)
+    else:
+        print(f'Could not retrieve content for Topic Page: {individual_page}')
+        No_Find_Journal.append(individual_page)
+        
+    #Informing the user how many pages crawled
+    countpublicationcheck += 1
+    print(f"{countpublicationcheck}/{len(Publication_Topic_Pages)} Topic URL's Crawled")
+    #Telling the user how many Journals were extracted from the Topic URl page
+    print(f'Total Journal Papers Found on Page: {len(JournalPublicationsOnPage)}')
+
+#Removing duplicates from both lists
+print('\nRemoving Duplicates...')
+Journal_Publications = list(set(Journal_Publications))
+No_Find_Journal = list(set(No_Find_Journal))
+
+print(f"A total of {len(Journal_Publications)} Joural Paper URL's have been extracted")
+
+#If failed topic URLs were added to the failed list it is checked here and then information is printed
+if len(No_Find_Journal) != 0:
+    print(f'\nNo Journal URLs could be found for {len(No_Find_Journal)} topic pages.')
+    print('Topic pages with failed Journal Publication extraction to check')
+    for Topic in No_Find_Journal:
+        print(Topic)
+        
+        
+#New Section-----------------------------------------------------------------------------------------------
+        
+print('\nBeginning Data Extraction, Preprocessing, and Cleaning...')
+print('Publication Journals Extraction:')
+#A counter to count how many Publications have been scanned
+URLs_Scanned2 = 0
+#A counter to count how many Publications have been scanned successfully
+Successcounter2 = 0
+#A list to store the Publication dictionary in before converting to a Pandas DF
+DataPrePandas = []
+#A list of failed URLs to display errors easily
+failedurls2 = []
+
+#Creating a lit of publications without Citations for checking
+Publications_without_Citations = []
+
+#Looping through the Publications in our Journal Publications List
+for Pub in Journal_Publications:
+    #Create a dictionary for each Journal URL
+    PubInfo2 = {
+        'Publication': '',
+        'Year': '',
+        'Citations': '',
+        'Topics': '',
+        'LDOR': '',
+    }
+
+    #Passing the publication through the WebScrape function to return soup of the page
+    Pub_Content = WebScrape(Pub)
+
+    #Reusing Year finding element from before
+    PlainText2 = Pub_Content.find_all('p', class_= 'TextSmall')
+    #print(f'The number of P elements: {len(PlainText)}')
+    if PlainText2 != None:
+        #Cycle through the paragraph elements to find the one with the year and author in
+        for para in PlainText2:
+            #Checking if the 'year element is in the paragraph element'
+            if 'year='in para.text.lower():
+
+                #Checking if the year element is found by it not returning -1
+                if para.text.find('year=') != -1:
+
+                    #Extracting the Year Variable by finding the index value of the beginning of the list then adding the length of 'year={' to get to the start of the year
+                    year_start2 = para.text.find('year=') + len('year={')
+
+                    #Checking to see if an indexed value is returned
+                    if para.text.find('}') != -1:
+
+                        #Finding the end of the year by looking for the '}' element starting from the index of yearstart2
+                        year_end2 = para.text.find('}', year_start2)
+
+                        #The year value is the indexed values between the indexed start and end values
+                        year = para.text[year_start2:year_end2]
+
+                        #Checking to make sure the returned value is 4 numeric integers
+                        if len(year) == 4 and year.isdigit():
+                            #Appending the year if it is
+                            year = year
+                            #Counting this as a success in the counter
+                            Successcounter2 += 1
+                            #print(year)
+
+                        #Printing failed if statements and appending the Pub failed for to the list
+                        else:
+                            print(f'Year variable was not 4 numbers for: {Pub}')
+                            failedurls2.append(Pub)
+                    else:
+                        print(f'Year end could not be found for: {Pub}')
+                        failedurls2.append(Pub)
+                else:
+                    print(f'Year start could not be found for: {Pub}')
+                    failedurls2.append(Pub)
+    else:
+        print(f'Could not find PlainText element in {Pub}')
+        failedurls2.append(Pub)
+
+    #Finding the H1 element
+    H1_find = Pub_Content.find('h1', style='text-align: center')
+
+    #Checking that value was returned from the H1 element
+    if H1_find != None:
+
+        #Turning the BeautifulSoup element to text and splitting it
+        H1_Stripped = H1_find.text.split()
+
+        #Checking if 'Citation' is in the element
+        if 'Citation:' in H1_Stripped:
+            #Getting the index for 'Citation:'
+            Citation_Index = H1_Stripped.index('Citation:')
+
+            #Checking a value was returned
+            if Citation_Index != -1:
+                #Starting the Citation indexing as one after the 'Citation:' as thats where the citation count starts
+                Citation = H1_Stripped[(Citation_Index)+1]
+                #Removing the # elements
+                Citation = Citation.replace('#', '')
+                #Counting this as a success
+                Successcounter2 += 1
+
+            #Counting that 0 citations were found and adding this to the URL for checking
+            #Since some Publications have 0 Citations this is worth checking it is not an error which is why we do not count as an error directly
+            else:
+                Citation = 0
+                print(f'"Citation" was not found in H1 Tag stripped for: {Pub}')
+                Publications_without_Citations.append(Pub)
+        else:
+            Citation = 0
+            print(f'Citation was not found in H1 Tag for: {Pub}')
+            Publications_without_Citations.append(Pub)
+    else:
+        print(f'H1 tag was not found for: {Pub}')
+        Publications_without_Citations.append(Pub)
+
+    #Creating a list for the Topics in the URL which will use the loop below to see what Topic URls each publication is in using the dictionary created in Q1
+    TopicsInURLS = []
+    #A list for the finalised data of Topics in
+    TopicsIn = []
+
+    #Loops through the dictionary and checks if the publication is in the Topic URL dictionary values then saves the Topic URLS the publications URL is in
+    for topic_url, urls in TopicLogging.items():
+        if Pub in urls:
+            TopicsInURLS.append(topic_url)
+    #Removes any duplicates
+    TopicsInURLS = list(set(TopicsInURLS))
+
+    #Makes sure every Publication has at least one Topic URL it is matched too
+    if len(TopicsInURLS) == 0:
+        print(f'There has been an Error and no Topic URLs were matched with Publication: {Pub}')
+        failedurls2.append(Pub)
+
+    #Continuing on as long as the TopicURl list has a topic URl stored
+    else:
+        #Looping through the Topic URLs the publication was matched too
+        for topicURl in TopicsInURLS:
+            #Removing the global URL section to get the local section
+            LocalisingURL = topicURl.split('https://sitescrape.awh.durham.ac.uk/comp42315/')
+
+            #Scraping the topicURl
+            TopicInURLContent = WebScrape(topicURl)
+            if TopicInURLContent != None:
+                TopicTopics = TopicInURLContent.find_all('p', class_="TextOption")
+
+                if TopicTopics != None:
+                    #Looping through the found <p> tags
+                    for textoption in TopicTopics:
+                        #Only continuing with the <p> tag containing the text 'Topic'
+                        if 'Topic' in textoption.text:
+                            TopicFound = 1
+                            #Convert to a string rather than a list
+                            textoption = str(textoption)
+                            #Replacing the intro part with nothing to leave only extractable elements that will not mess with the split.('/') command
+                            textoption = textoption.replace('<p class="TextOption">Topic:\xa0\xa0\xa0', '')
+                            #Splitting the string based on '/'
+                            textoption = textoption.split('/')
+                            #Looping through the links
+                            for link_ in textoption:
+                                #Looking for the only split element that does not start with the A href elements as that is the pattern for the current selected element in the Topic List
+                                if link_.startswith(' <a href') != True and link_.startswith('a>') != True and link_.startswith('<a href') != True and link_.startswith('p>') != True:
+                                    #Appending our found Topic
+                                    TopicsIn.append(link_)
+                                    Successcounter2 += 1
+                else:
+                    print(f'P tags could not be found for: {Pub}')
+                    failedurls2.append(Pub)
+            else:
+                print(f'TopicInURLContent could not be found for: {Pub}')
+                failedurls2.append(Pub)
+
+    #Checking if the topic element was found using the count
+    if TopicFound != 1:
+        print(f'Topic Element was not found in loop for: {Pub}')
+        failedurls2.append(Pub)
+
+    #Creates a list for the LDOR section
+    LDOR_Links = []
+
+    #Uses the publication content variable to look for the h2 element with the text 'Links, Downloads and Online Resources'
+    LDOR_H2 = Pub_Content.find('h2', text='Links, Downloads and Online Resources')
+
+    #Makes sure a value was returned for the LDOR was found
+    if LDOR_H2 != None:
+        LODR_Div = LDOR_H2.find_next('div')
+
+        #Makes sure Div element was found
+        if LODR_Div != None:
+            LDOR_Hrefs = LODR_Div.find_all('a', href=True)
+
+            #Makes sure HREF elements were found
+            if LDOR_Hrefs != None:
+                #Loops through the HRef's in LDOR_Hrefs
+                for Href in LDOR_Hrefs:
+                    LDOR_Link = Href['href']
+
+                    if LDOR_Link != None:
+                        LDOR_Links.append(LDOR_Link)
+            else:
+                print(f'A Href Elements was not found for LDOR in Publication: {Pub}')
+                failedurls2.append(Pub)
+        else:
+            print(f'Div Element was not found for LDOR in Publication: {Pub}')
+            failedurls2.append(Pub)
+    else:
+        print(f'H2 Element was not found for LDOR in Publication: {Pub}')
+        failedurls2.append(Pub)
+
+    #Checking that the extraction took at least one element
+    if len(LDOR_Links) != None:
+        Successcounter2 += 1
+    else:
+        print(f'No items were found for LDOR in Publication: {Pub}')
+        failedurls2.append(Pub)
+
+    #Checking for youtube elements
+    Youtube_Check = Pub_Content.find_all('iframe', class_="youtube-player")
+    if Youtube_Check != None:
+        #Adding all the youtube elements to LDOR list
+        for YouTube_Element in Youtube_Check:
+            LDOR_Links.append('YouTube Element')
+
+    #Removing duplicates
+    LDOR_Links = list(set(LDOR_Links))
+
+    #Resets the success counter for next iteration
+    Successcounter2 = 0
+
+    #Adds to the URL scanned counter as it is complete
+    URLs_Scanned2 += 1
+
+    #Appends the information generated to the dictionary
+    PubInfo2['Publication'] = Pub
+    PubInfo2['Year'] = year
+    PubInfo2['Citations'] = int(Citation)
+    PubInfo2['Topics'] = str(TopicsIn)
+    PubInfo2['LDOR'] = int(len(LDOR_Links))
+
+    #Adds the dictionary to the list
+    DataPrePandas.append(PubInfo2)
+
+    #Provides some information on the status of the program
+    print(f'Publication: {URLs_Scanned2}/{len(Journal_Publications)} Scanned')
+
+#Removing duplicates from the failed Publication List
+failedurls2 = list(set(failedurls2))
+if len(failedurls2) != 0:
+    print('\nSome publications did not have all elements extracted correctly, please check the following')
+    for i in failedurls2:
+        print(i)
+else:
+    print(f'\nNo Errors found when conducting program, please just check citations')
+
+#Converting list to pandas dataframe
+DataFrame = pd.DataFrame(DataPrePandas)
+
+#Printing off the Citation Elements to be checked
+if len(Publications_without_Citations) != 0:
+    print('\nThe following Publications need to be checked that there are no Citations and that there was not an error with extraction')
+    for i in Publications_without_Citations:
+        print(i)
+
+#Checking for missing values
+if DataFrame.isnull().values.any():
+    print('\nData is missing from table')
+else:
+    print('\nOtherwise DataFrame is not missing any values')
+    
+    
+#New Section-----------------------------------------------------------------------------------------------
+## Grouping by Topics and making all publications have only one topic type
+print('\nBeginning Grouping Topics and Splitting Publication Types...')
+#Function to normalise the Topic Strings
+def TopicStringNormalise(string):
+    normalise = [element.strip() for element in string.split()]
+    return ' '.join(normalise)
+
+
+#Checking total amount of publications for only singular Topics
+Number_Of_Entries = DataFrame['Topics'].str.strip("[]'").str.split(', ').apply(len).sum()
+
+#Duplicating the entries to make individual publications for each topic type and no joint topic publications
+duplicated_entries = []
+
+for num, entry in DataFrame.iterrows():
+    #Extract the topic from the data frame
+    topics = entry['Topics'].strip("[]'").split(', ')
+
+    #Cycles through all of the topic elements in the topics
+    for topic in topics:
+        #Creates a new dictionary for each topic element in the topics
+        new_entry = {
+            'Year': entry['Year'],
+            'Publication': entry['Publication'],
+            'Citations': entry['Citations'],
+            'LDOR': entry['LDOR'],
+            'Topics': topic.strip().replace("'", '')
+        }
+        #Adding the dictionary to the new list
+        duplicated_entries.append(new_entry)
+
+
+#Creating a new dataframe from the duplicated entries
+TopicDataFrame = pd.DataFrame(duplicated_entries)
+
+#Checking the dataframe for duplicates
+duplicates = TopicDataFrame[TopicDataFrame.duplicated()]
+
+#Error Checking for if there are duplicate publications in the Dataframe
+if duplicates.empty:
+    #Makes sure that the number of individual publication Topics are equal
+    if len(TopicDataFrame['Topics']) == Number_Of_Entries:
+        #Informs the user
+        print("No duplicates found and Number of Entries match total individual topic publication in Journal Publication Data.")
+        #print(TopicDataFrame)
+    else:
+        print('Number of entries in Topic Data Frame does not match the total individual topic publication in Journal Publication Data')
+else:
+    print("\nDuplicates found:")
+    print(duplicates)
+
+#Normalise the string elements to ensure that the topic strings are exactly the same to allow for grouping
+TopicDataFrame['Topics'] = TopicDataFrame['Topics'].apply(TopicStringNormalise)
+
+#Grouping by topics
+Grouped_Topics = TopicDataFrame.groupby('Topics').agg({
+    'Publication': 'count', #Total count of publications per topic
+    'Citations': ['sum', 'mean', 'var'],  #Sum of citations and the mean of the citations per topic
+    'LDOR': 'sum'  }).reset_index() #Sum of LDOR per topic
+
+#Renaming the columns
+Grouped_Topics.columns = ['Topics', 'Publications Count', 'Total Citations', 'Mean Citations', 'Citations Variance', 'Total LDOR']
+
+#Creating a new dataframe with just the data that we want
+Selected_data = ['Year', 'Publication', 'Citations', 'LDOR', 'Topics']
+Selected_DataFrame = TopicDataFrame[Selected_data]
+#Renaming the Topics to Topic for both sets since we now have individual topics only
+Selected_DataFrame.rename(columns={'Topics': 'Topic'}, inplace=True)
+Grouped_Topics.rename(columns={'Topics': 'Topic'}, inplace=True)
+#Merging the dataframes
+Selected_DataFrame = pd.merge(Selected_DataFrame, Grouped_Topics[['Topic', 'Mean Citations', 'Citations Variance']], on='Topic', how='left')
+#Rounding the Mean Citations
+Selected_DataFrame['Mean Citations'] = Selected_DataFrame['Mean Citations'].round(2)
+#Renaming to display this
+Selected_DataFrame.rename(columns={'Mean Citations': 'Topic Mean Citations (Rounded)'}, inplace=True)
+#Filling in null values
+Selected_DataFrame['Citations Variance'] = Selected_DataFrame['Citations Variance'].fillna(0)
+
+#Grouping by Topics and Year for Figure One
+Grouped_Topics_YearandTopics = TopicDataFrame.groupby(['Topics', 'Year']).agg({
+    'Publication': 'count',  #The number of publications per year and topic
+    'Citations': ['sum', 'mean', 'var'],  #Sum of citations, the mean of them and the variance per year and topic
+}).reset_index()
+
+#Setting the columns
+Grouped_Topics_YearandTopics.columns = ['Topic', 'Year', 'Publications Count', 'Citations', 'Mean Citations', 'Citations Variance']
+
+#Getting unique topics
+Unique_Topics = Grouped_Topics_YearandTopics['Topic'].unique()
+print(f'\nThere are: {len(Unique_Topics)} Unique Topics')
+print('Question Two Printed Table:')
+Selected_DataFrame2 = Selected_DataFrame.copy()
+Selected_DataFrame2 = Selected_DataFrame2.sort_values(by='Topic')
+display(Selected_DataFrame2)
+
+
+#New Section-----------------------------------------------------------------------------------------------
+# Grouping by Topics and Year and aggregating statistics
+
+#Sorting the spacing for all the elements in the bar chart
+total_width = 0.8  #Making the total width slightly less than one for room between bars
+bar_width = total_width / len(Unique_Topics)  #Dividing the width by the total number of unique topics
+spacing = (1 - total_width) / 2  #Spacing between the bars
+
+#Figure and axis
+fig, ax1 = plt.subplots(figsize=(20, 10))
+
+#Plot titles and axis titles
+ax1.set_xlabel('Year')
+ax1.set_ylabel('Mean Citations')
+ax1.set_title('Figure One: Mean Citations and Variance per Year for Different Topics')
+ax1.grid(True)
+
+#Setting the year range for the X axis and the limits
+years = range(int(Grouped_Topics_YearandTopics['Year'].min()), int(Grouped_Topics_YearandTopics['Year'].max()) + 1, 1)
+ax1.set_xlim(min(years) - 0.5, max(years) + 0.5)
+#Setting the difference between them as the years
+ax1.set_xticks(years)
+
+#Getting a colour map
+Colour_map = plt.cm.get_cmap('tab20')
+
+#Enumerate through data for each topic
+for i, (topic_group, data) in enumerate(Grouped_Topics_YearandTopics.groupby('Topic')):
+    #Ensuring all Year data is an integer
+    data['Year'] = data['Year'].astype(int)
+    #Making sure all mean citations are a float
+    data['Mean Citations'] = data['Mean Citations'].astype(float)
+
+    #Adjusting the coordinates
+    x_coordinates = data['Year'] + i * bar_width + spacing
+
+    #Plotting the point
+    ax1.bar(x_coordinates, data['Mean Citations'], width=bar_width,
+            color=Colour_map(i), label=topic_group)
+
+#Setting the Y limits
+ax1.set_ylim(int(Grouped_Topics_YearandTopics['Mean Citations'].min()), int(Grouped_Topics_YearandTopics['Mean Citations'].max()) + 1)
+
+#Adding a second y axis and labelling
+ax2 = ax1.twinx()
+ax2.set_ylabel('Variance')
+
+#Enumerating through topics for the data again
+for i, (topic_group, data) in enumerate(Grouped_Topics_YearandTopics.groupby('Topic')):
+    #Adjusting x coords again and ensuring year is once again an integer
+    x_coordinates = data['Year'].astype(int) + i * bar_width + spacing
+    #Plotting the scatter point
+    ax2.scatter(x_coordinates, data['Citations Variance'], color='black', marker='x', s=30, alpha = 0.5)
+
+#Setting the ylimit as 0
+ax2.set_ylim(0)
+
+#Creating the legends and setting them to the side of the graph
+legend1 = ax1.legend(loc='upper right')
+legend2 = ax2.legend(loc='lower right', labels=['Topic and Year Variance'])
+
+legend1.set_bbox_to_anchor((1.25, 1))
+legend2.set_bbox_to_anchor((1.25, 0.5))
+
+plt.show()
+
+#Adding in a square root(Citations) to the Dataframe for spread
+Selected_DataFrame['Citations_sqrt'] = np.sqrt(Selected_DataFrame['Citations'])
+
+
+#Creating the Column Data Source
+ColumnData = ColumnDataSource(Selected_DataFrame)
+
+#Creating the figure
+p = figure(width=1200, height=800, title="Figure Two: LDOR against Citations", x_axis_label='LDOR', y_axis_label='Citations')
+
+#Adding a colour map for the length of unique topics
+colors = Category20[len(Unique_Topics)]
+
+#Creating the Scatter
+scatter = p.scatter(x='LDOR', y='Citations', source=ColumnData, legend_field='Topic',
+                    fill_color=factor_cmap('Topic', palette=colors, factors=Unique_Topics,), size=10)
+
+#Addint the hover element with tooltips
+hover = HoverTool(tooltips=[("Journal", "@Publication"), ("LDOR", "@LDOR"), ("Citations", "@Citations{int}"), ("Topic", "@Topic")])
+#Add to the figure
+p.add_tools(hover)
+
+#Ading a legend to the figure
+p.legend.title = 'Topics'
+
+
+#Adding a second figure for the Log(Citations)
+p2 = figure(width=1200, height=800, title="Figure Two: LDOR against Square Root(Number of Citations)\nThis is to improve spread in the data for readability", x_axis_label='LDOR', y_axis_label='Sqrt(Citations)')
+
+#Second Scatter for Log(Citations)
+scatter2 = p2.scatter(x='LDOR', y='Citations_sqrt', source=ColumnData, legend_field='Topic',
+                    fill_color=factor_cmap('Topic', palette=colors, factors=Unique_Topics,), size=10)
+
+#Adding the hover tooltip to the second figure
+p2.add_tools(hover)
+
+p2.legend.title = 'Topics'
+
+#Creating a grid and scaling for the two plots
+grid = gridplot([[p],[p2]], sizing_mode='scale_both')
+
+#Displaying the grid containing the plots
+output_notebook()
+show(grid)
+
+Finance_Dataset = pd.read_csv("finance_dataset.csv", sep=',', header=0)
+
+defined_columns = ['high52', 'mom12m', 'mom6m', 'maxret', 'mom12moffseason', 'realizedvol','idiovolaht', 'zerotrade', 'indretbig', 'returnskew']
+target_variable = "excessret"
+
+#Creating a copy for a subset with the columns we are after
+subset = Finance_Dataset[defined_columns + [target_variable]].copy()
+print(subset.head())
+
+
+#Checking for Null Values
+null_values = subset.isnull().sum()
+#If any null values found
+if null_values.any():
+    print('Null Values Found in DataFrame')
+    #Swapping for mean values of the columns
+    subset.fillna(subset.mean(), inplace=True)
+    print('Null Values replaced with mean of columns')
+else:
+    print('No Null Values were found')
+
+#Assigning out X and Y values
+X = subset[defined_columns]
+y = subset[target_variable]
+
+plt.figure(figsize=(12, 8))
+
+#Box and whisker plots for each variable
+for i, col in enumerate(defined_columns):
+    plt.subplot(3, 4, i+1)
+    sns.boxplot(data=subset[col])
+    plt.title(f'Boxplot of: {col}')
+    plt.ylabel('val')
+
+plt.tight_layout()
+plt.show()
+
+#Seaborn distribution check, why I wanted to use seaborn
+sns.distplot(subset[target_variable])
+
+#Plotting the correlation of variables against target variable 
+correlation_with_target = subset.corr()[[target_variable]]
+plt.figure(figsize=(8, 6))
+sns.heatmap(correlation_with_target, annot=True, cmap='coolwarm')
+plt.title("Correlation of Variables with Target Variable")
+plt.xlabel("Variables")
+plt.ylabel("Target Variable")
+plt.show()
+
+print('Plots presented showed no linear correlation in the data and outliers.')
+
+subset.describe().transpose()
+
+#Creating Labels for varaibles with quartiles
+
+def quart_labels(data, variable):
+    quartiles = data[variable].quantile([0.25, 0.5, 0.75])
+    labels = [f'1. Less than: {quartiles.iloc[0]}']
+    labels.append(f'2. Between: {quartiles.iloc[0]} and {quartiles.iloc[1]}')
+    labels.append(f'3. Between: {quartiles.iloc[1]} and {quartiles.iloc[2]}')
+    labels.append(f'4. Greater than: {quartiles.iloc[2]}')
+    return labels
+
+high52_labels = quart_labels(subset, 'high52')
+mom12m_labels = quart_labels(subset, 'mom12m')
+mom6m_labels = quart_labels(subset, 'mom6m')
+maxret_labels = quart_labels(subset, 'maxret')
+mom12moffseason_labels = quart_labels(subset, 'mom12moffseason')
+realizedvol_labels = quart_labels(subset, 'realizedvol')
+idiovolaht_labels = quart_labels(subset, 'idiovolaht')
+zerotrade_labels = quart_labels(subset, 'zerotrade')
+indretbig_labels = quart_labels(subset, 'indretbig')
+returnskew_labels = quart_labels(subset, 'returnskew')
+excessret_labels = quart_labels(subset, 'excessret')
+
+def make_discrete(df):
+    discrete_df = pd.DataFrame()
+
+    discrete_df['maxret'] = pd.cut(df['maxret'], bins=4, labels=maxret_labels, precision=2)
+    discrete_df['mom12moffseason'] = pd.cut(df['mom12moffseason'], bins=4, labels=mom12moffseason_labels, precision=2)
+    discrete_df['realizedvol'] = pd.cut(df['realizedvol'], bins=4, labels=realizedvol_labels, precision=2)
+    discrete_df['idiovolaht'] = pd.cut(df['idiovolaht'], bins=4, labels=idiovolaht_labels, precision=2)
+    discrete_df['zerotrade'] = pd.cut(df['zerotrade'], bins=4, labels=zerotrade_labels, precision=2)
+    discrete_df['indretbig'] = pd.cut(df['indretbig'], bins=4, labels=indretbig_labels, precision=2)
+    discrete_df['returnskew'] = pd.cut(df['returnskew'], bins=4, labels=returnskew_labels, precision=2)
+    discrete_df['excessret'] = pd.cut(df['excessret'], bins=4, labels=excessret_labels, precision=2)
+
+    discrete_df = discrete_df.astype('object')
+
+    return discrete_df
+
+subset_df = make_discrete(subset)
+
+training_data, testing_data = train_test_split(subset_df, test_size=0.2, random_state=20)
+hc = HillClimbSearch(data=training_data)
+estimate = hc.estimate(scoring_method='k2score', max_iter=7)
+
+model = BayesianNetwork(estimate)
+from pgmpy.estimators import BayesianEstimator, ExpectationMaximization, MaximumLikelihoodEstimator
+from IPython.core.display import display, HTML
+
+# disable text wrapping in output cell
+display(HTML("<style>div.output_area pre {white-space: pre;}</style>"))
+
+model.cpds = []
+
+model.fit(data=training_data,
+    estimator=BayesianEstimator,
+    prior_type='BDeu',
+    complete_samples_only=True)
+
+plt.figure(3,figsize=(14,14))
+G = nx.DiGraph()
+G.add_edges_from(model.edges)
+
+
+G.add_nodes_from(model.nodes)
+pos = nx.circular_layout(G)
+DAG = G.to_directed()
+nx.topological_sort(DAG)
+
+nx.draw_networkx(G,
+                pos=pos,
+                with_labels=True,
+                node_size=2000,
+                arrowsize=30,
+                alpha=0.7,
+                font_weight="bold",
+                width=2.0) 
+
+highlight_node = 'excessret'
+highlighted_subgraph = G.subgraph(nodes=[highlight_node])
+nx.draw(highlighted_subgraph, pos=pos, with_labels=False, arrowsize=0, node_size=4100, alpha=0.7, font_weight="bold", node_color='#063970')
+
+plt.show()
+
+
+sub_g = G.subgraph(nodes=['high52', 'mom12m', 'mom6m', 'maxret', 'mom12moffseason', 'realizedvol','idiovolaht', 'zerotrade', 'indretbig', 'returnskew'])
+nx.draw(sub_g, pos=pos, with_labels=True, arrowsize=30, node_size=800, alpha=0.7, font_weight="bold")
+plt.show()
+
+accuracy_dict = {}
+
+for column in testing_data:
+    predict_data = testing_data.copy()
+    predict_data.drop(column, axis=1, inplace=True)
+    y_pred = model.predict(predict_data)
+    accuracy = accuracy_score(testing_data[column], y_pred)
+    
+    accuracy_dict[column] = accuracy
+    
+total_accuracy = 0
+for accuracy in accuracy_dict.values():
+    total_accuracy += accuracy
+average_accuracy = total_accuracy / len(accuracy_dict)
+accuracy_dict['Average'] = average_accuracy
+
+# Check the values in accuracy_dict
+print('\nValues in accuracy_dict:')
+for key, value in accuracy_dict.items():
+    print(f'{key}: {value}')
+    
+print(f'\nAverage Accuracy (rounded): {round(average_accuracy * 100, 2)}%')
+
+f1 = correlation_score(model=model, data=testing_data, test='chi_square', significance_level=0.05, score=f1_score, return_summary=False)
+acc = correlation_score(model=model, data=testing_data, test='chi_square', significance_level=0.05, score=accuracy_score, return_summary=False)
+pr = correlation_score(model=model, data=testing_data, test='chi_square', significance_level=0.05, score=precision_score, return_summary=False)
+recall = correlation_score(model=model, data=testing_data, test='chi_square', significance_level=0.05, score=recall_score, return_summary=False)
+ls = log_likelihood_score(model=model, data=testing_data)
+ss = structure_score(model=model, data=testing_data, scoring_method='bdeu')
+
+print('\nStatistical Scoring:')
+print(f'F1 score: {f1}')
+print(f'Accuracy score: {acc}')
+print(f'Precision score: {pr}')
+print(f'Recall score: {recall}')
+print(f'Log-likilihood score: {ls}')
+print(f'Structure score: {ss}')
+
+print(model.name)
+
+print(f'Check model: {model.check_model()}\n')
+for cpd in model.get_cpds():
+    print(f'CPT of {cpd.variable}:')
+    print(cpd * 100, '\n')
