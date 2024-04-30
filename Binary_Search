@@ -1,0 +1,33 @@
+import numpy as np
+import math
+x = np.random.randint(0, 15, 100000000)
+print(x)
+
+
+#Binary Search Algorithm
+
+def BinSearch(array, target):
+    #Binary search begins by comparing an element in the middle of the array with the target value
+    A = np.sort(array) #Sort array
+    print(A)
+    L = 0
+    R = len(A)-1
+    if L > R:
+        return -1
+    
+    while L <= R:
+        m = math.floor((L+R)/2)
+    
+        if A[m] < target:
+            L = m+1
+        elif A[m] > target:
+            R = m-1
+        elif A[m] == target:
+            return m
+    return -1
+    
+    
+    
+    
+p = BinSearch(x, 14)
+print(p)
