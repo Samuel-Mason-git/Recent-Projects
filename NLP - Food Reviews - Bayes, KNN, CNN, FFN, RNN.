@@ -1,0 +1,1256 @@
+NAME = "Samuel Mason"
+CIS_USERNAME = "VTZX24"
+
+#Dataset Preperation
+import pandas as pd
+import numpy as np
+import pickle
+import re
+import nltk
+from nltk.tokenize import word_tokenize
+from nltk.tokenize import sent_tokenize
+from nltk.corpus import stopwords
+from string import punctuation
+from nltk.stem import WordNetLemmatizer
+import time
+from sklearn.model_selection import train_test_split
+import gensim
+from gensim.models import Word2Vec
+from sklearn.feature_extraction.text import TfidfVectorizer
+from gensim.models import Word2Vec
+import gensim
+from sklearn.naive_bayes import MultinomialNB
+import string
+from sklearn.pipeline import make_pipeline
+from sklearn.neighbors import KNeighborsClassifier
+from collections import Counter
+from sklearn.metrics import classification_report
+from string import punctuation
+from sklearn.metrics import confusion_matrix, accuracy_score, f1_score,precision_score,recall_score,classification_report
+import seaborn as sns
+import matplotlib.pyplot as plt
+from scipy.sparse import csr_matrix
+from scipy.sparse.linalg import svds
+import tensorflow as tf
+from tensorflow.keras.callbacks import EarlyStopping
+sns.set()
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.preprocessing import LabelEncoder
+from tensorflow.keras.utils import to_categorical
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+from sklearn.preprocessing import OneHotEncoder
+from tensorflow.keras.layers import Conv1D, GlobalMaxPooling1D, Dense, Dropout, Flatten
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Reshape
+from tensorflow.keras.layers import LSTM
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
+from tensorflow.keras import Sequential
+from tensorflow.keras.layers import Input, Embedding, LSTM, Dense, Bidirectional
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.losses import SparseCategoricalCrossentropy
+from tensorflow.keras.callbacks import EarlyStopping
+
+nltk.download('stopwords')
+nltk.download('punkt')
+nltk.download('wordnet')
+nltk.download('words')
+
+
+
+#Read the dataset
+df = pd.read_csv(r"food_reviews.csv")
+df = df.copy()
+
+#Taking a section for testing
+#df = df[:100000]
+
+print("\nNumber of reviews in each class before pre-processing:")
+print(df['Score'].value_counts())
+pre_processing_scores = df['Score'].value_counts()
+
+start_time = time.time()
+#Removing Null Values-----------------------------------------------------------------------'
+
+def null_values(df):
+    #Check for missing data entries
+    if df.isnull().sum().any() != 0:
+        print('The total Null Values Found:','\n', df.isnull().sum())
+        #Taking the rows before and after to work out how many removed
+        rows_before = df.shape[0]
+        #Droping the empty rows
+        df = df.dropna(subset=['Summary'])
+        rows_after = df.shape[0]
+        #Working out the amount of rows lost
+        deleted_rows = rows_before - rows_after
+        print('Number of rows with missing data entries removed: ', deleted_rows)
+    else:
+        print('No Null Values Found')
+    return df
+
+
+#Regexing Data-----------------------------------------------------------------------
+#Create a function to pass the summary and text elements through
+def cleanfood_reviews(text):
+    #Removing any html <br>, <a> or <span> tags left in the text
+    regex = r'<br\s?/?>'
+    text = re.sub(regex, ' ', text)
+    regex = r'<a\s.*?/a>'
+    text = re.sub(regex, ' Website Link ', text)
+    regex = r'<span\s.*?/span>'
+    text = re.sub(regex, ' ', text)
+  
+    #Removing single letter words
+    regex = r'\b[a-zA-Z]\b'
+    text = re.sub(regex, ' ', text)
+  
+    #Removing repeating letters of more than 3 occurances
+    regex = r'(.)\1{3,}'
+    text = re.sub(regex, r'\1\1\1', text)
+
+    #Lots of joint words noticed in vocabulary (excludes hyphons)
+    regex = r'([a-z])-([a-z])'
+    text = re.sub(regex, r' \1-\2 ', text)
+    regex = r'([a-z])([A-Z])'
+    text  = re.sub(regex, r' \1 \2 ', text)
+  
+    #Adding a space between a digit and a letter
+    regex = r'(\d)(?=[a-zA-Z])'
+    text = re.sub(regex, r'\1 ', text)
+    regex = r'(?<=[a-zA-Z])(\d)'
+    text = re.sub(regex, r' \1', text)
+  
+    #Removing '-' and '_'
+    regex = r'[-_]'
+    text = re.sub(regex, '', text)
+
+    #Preserving the structure of the text by replacing the '[...]' element (occuring 2286 times) with the filler text 'website link'
+    regex = r'\[.*?\]'
+    text = re.sub(regex, ' Website Link ', text)
+
+    #Removing the '***UPDATE***' elements (1381 occurances)
+    regex = r'\*\*\*UPDATE\*\*\*'
+    text = re.sub(regex, ' ', text)
+
+    #Matching and replacing all sentence end with one full stop
+    regex = r'[?!.+]+(?![^\s])' #Matching one or more occurances of the punctuation in the square brackets
+    text = re.sub(regex, '. ', text) #Replacing with one full stop
+  
+    #Removing any non-word elements
+    regex = r'[^\w\s,]'   
+    text = re.sub(regex, ' ', text)
+  
+    #Getting rid of any multiple full stop elements
+    regex = r'\.{2,}' 
+    text = re.sub(regex, '. ', text)
+  
+    #Removing commas
+    regex = r','
+    text = re.sub(regex, ' ', text)
+  
+    #Making sure there is only one white space between words
+    regex = r'\s+'
+    text = re.sub(regex, ' ', text)
+
+    #Make all text lowercase
+    text = text.lower()
+  
+    #Get rid of numbers
+    regex = r'\b\d+\b'
+    text = re.sub(regex, ' ', text)
+  
+    text = text + ' '
+
+    return text
+
+
+#Stopword Removal Data-----------------------------------------------------------------------
+stopwords_english = set(stopwords.words('english'))    
+# Removing stopwords from the stopwords list which might impact sentiment analysis
+custom_stopwords = {'no', 'not', 'very', 'nor', 'can', 'will', 'should', 'would',  'more', 'most', 'very', 'too', 'like', 'have', 'is', "couldn't", "wasn't", "shouldn", "haven't",
+                    "should've", 'was', 'because', 'does' , "aren't", "shan't", "weren't", 'won','through', "hasn't", "needn't", "don't", "won't", 'there', 'again'}
+stopwords_english = stopwords_english - custom_stopwords
+
+#A function to call for each cell to remove stopwords
+def stopwords(text):
+    words_nostopwords = []
+    for word in word_tokenize(text):
+        if word not in stopwords_english:
+            words_nostopwords.append(word)
+    return ' '.join(words_nostopwords)    
+
+
+#Lemmatisation-----------------------------------------------------------------------
+wnl = WordNetLemmatizer()
+def Lemmatisation(text):
+    text = word_tokenize(text)
+    lemmatized_words = []
+    for word in text:
+        lemmatized_word = wnl.lemmatize(word)
+        lemmatized_words.append(lemmatized_word)
+    return ' '.join(lemmatized_words)
+
+
+#Negation Pre-fixing-----------------------------------------------------------------------
+def negation_prefix(text):
+    words = word_tokenize(text)
+    negation_words = [
+        "not", "no", "never", "none", "neither", "nor", "nobody", "nowhere", "nothing"
+    ]
+    result = []
+    for word in words:
+        word_lower = word.lower()  # Convert word to lowercase
+        # Check if word (without punctuation) is a negation word
+        if word_lower.translate(str.maketrans('', '', string.punctuation)) in negation_words:
+            result.append("NOT_" + word)
+        else:
+            result.append(word)
+    text = ' '.join(result)
+    return text
+
+#Typo Handling-----------------------------------------------------------------------
+#Peter Norvigs Spell Corrector Probability Theory
+#URL: https://impythonist.wordpress.com/2014/03/18/peter-norvigs-21-line-spelling-corrector-using-probability-theory/
+'''
+Commented Out as computational time was too long
+
+def words(text): return re.findall('[a-z]+', text.lower()) 
+    
+def train(features):
+    model = collections.defaultdict(lambda: 1)
+    for f in features:
+        model[f] += 1
+    return model
+
+NWORDS = set(nltk.corpus.words.words())
+NWORDS = train(NWORDS)
+
+alphabet = 'abcdefghijklmnopqrstuvwxyz'
+
+def edits1(word):
+   splits     = [(word[:i], word[i:]) for i in range(len(word) + 1)]
+   deletes    = [a + b[1:] for a, b in splits if b]
+   transposes = [a + b[1] + b[0] + b[2:] for a, b in splits if len(b)>1]
+   replaces   = [a + c + b[1:] for a, b in splits for c in alphabet if b]
+   inserts    = [a + c + b     for a, b in splits for c in alphabet]
+   return set(deletes + transposes + replaces + inserts)
+
+def known_edits2(word):
+    return set(e2 for e1 in edits1(word) for e2 in edits1(e1) if e2 in NWORDS)
+
+def known(words): return set(w for w in words if w in NWORDS)
+
+def correct(word):
+    candidates = known(edits1(word)) or known_edits2(word) or [word]
+    return max(candidates, key=NWORDS.get)
+'''
+
+#Finalised word extraction-------------------------------------------------------------
+def tokenize_review(text):
+    text = re.findall(r'\b[a-zA-Z]+(?:-[a-zA-Z]+)*\b', text)
+    return ' '.join(text)
+
+print('\nCleaning Dataset--------------------------------------------------------------')
+Step_Counter = 0
+Steps = 13
+
+#Removing rows with missing data
+print('Removing any null reviews missing Summary and Text...')
+df = null_values(df)
+Step_Counter += 1
+print(f'Step {Step_Counter}/{Steps} Completed')
+
+#Prefixing negation words
+print('Pre-fixing negation words with NOT_ to Summary...')
+df['Review'] = df['Summary'].apply(negation_prefix)
+Step_Counter += 1
+print('Negation prefixes added to Summary')
+print(f'Step {Step_Counter}/{Steps} Completed')
+print('Pre-fixing negation words with NOT_ to Text...')
+df['Review'] = df['Text'].apply(negation_prefix)
+Step_Counter += 1
+print('Negation prefixes added to Text')
+print(f'Step {Step_Counter}/{Steps} Completed')
+
+#Passing through the regexing function
+print('Standardising/Normalising Sentences of Summary...')
+df['Summary'] = df['Summary'].apply(cleanfood_reviews)
+print('Summary Normalised')
+Step_Counter += 1
+print(f'Step {Step_Counter}/{Steps} Completed')
+print('Standardising/Normalising Sentences of Text...')
+df['Text'] = df['Text'].apply(cleanfood_reviews)
+print('Text Normalised')
+Step_Counter += 1
+print(f'Step {Step_Counter}/{Steps} Completed')
+
+#Passing through the removing stopwords function
+print('Removing Stopwords of Summary...')
+df['Summary'] = df['Summary'].apply(stopwords)
+print('Stopwords Removed from Summary')
+Step_Counter += 1
+print(f'Step {Step_Counter}/{Steps} Completed')
+print('Removing Stopwords of Text...')
+df['Text'] = df['Text'].apply(stopwords)
+print('Stopwords Removed from Text')
+Step_Counter += 1
+print(f'Step {Step_Counter}/{Steps} Completed')
+
+print('Performing Lemmatisation on Summary...')
+df['Summary'] = df['Summary'].apply(Lemmatisation)
+print('Summary Lemmonised')
+Step_Counter += 1
+print(f'Step {Step_Counter}/{Steps} Completed')
+print('Performing Lemmatisation on Text...')
+df['Text'] = df['Text'].apply(Lemmatisation)
+print('Text Lemmonised')
+Step_Counter += 1
+print(f'Step {Step_Counter}/{Steps} Completed')
+
+print('Concatenatating Summary and Text...')
+df['Review'] = df['Summary'] + ' ' + df['Text']
+df = df.copy()
+df.drop(['Summary', 'Text'], axis=1, inplace=True)
+Step_Counter += 1
+print(f'Step {Step_Counter}/{Steps} Completed')
+
+print('Extracting just word elements left...')
+df['Review'] = df['Review'].apply(tokenize_review)
+print('Just words returned')
+Step_Counter += 1
+print(f'Step {Step_Counter}/{Steps} Completed')
+
+print('Removing duplicate reviews...')
+dupe_before = df.duplicated(subset='Review').sum()
+df.drop_duplicates(subset='Review', inplace=True)
+dupe_after = df.duplicated(subset='Review').sum()
+removed_dupe = dupe_before - dupe_after
+
+#Removing any missing data after preprocessing
+print('Removing any null value reviews after preprocessing...')
+df.dropna(inplace=True)
+print('Null Values Removed')
+Step_Counter += 1
+print(f'Step {Step_Counter}/{Steps} Completed')
+
+print(f'Duplicates removed: {removed_dupe}')
+Step_Counter += 1
+print(f'Step {Step_Counter}/{Steps} Completed')
+df.dropna(inplace=True)
+df.to_csv("cleaned_food_reviews.csv", index=False)
+end_time = time.time()
+time_taken = end_time - start_time
+mins = int(time_taken// 60)
+secs = int(time_taken % 60)
+print(f'Pre-Processing Complete in {mins}m and {secs}s')
+
+print("\nNumber of reviews in each class after pre-processing:")
+print(df['Score'].value_counts())
+post_processing_scores = df['Score'].value_counts()
+print('Change in Document Classes after processing:')
+new_processing = pre_processing_scores - post_processing_scores
+print(new_processing)
+
+print('\nExtracting Updated Corpus and Vocabulary--------------------------------------------------------------')
+punctuation = list(punctuation)
+corpus = []
+print('Extracting Corpus...')
+start_time = time.time()
+for text in df['Review']:
+    tokens = word_tokenize(text)
+    for token in tokens:
+        if token not in punctuation:
+            corpus.append(token)
+
+print('Extracting Voaculary...')
+vocabulary = set(corpus)
+vocabulary = sorted(list(vocabulary))
+print(f'Corpus Size: {len(corpus)}')
+print(f'Vocabulary Size: {len(vocabulary)}')
+end_time = time.time()
+time_taken = end_time - start_time
+mins = int(time_taken// 60)
+secs = int(time_taken % 60)
+print(f'Corpus and Vocabulary Extracted in {mins}m and {secs}s')
+
+print('\nSplitting Reviews and Scores into Training and Test Data---------------------------------------------')
+
+rating_counts = df['Score'].value_counts()
+rating_probs = rating_counts / rating_counts.sum()
+print('Probability of scores given P(c) = Number of Reviews in Class / Total Number of Reviews')
+print(rating_probs)
+
+reviews = df['Review']
+scores = df['Score']
+
+print('Splitting Reviews')
+X_train, X_test, y_train, y_test = train_test_split(df['Review'], df['Score'], test_size=0.3, random_state=42, stratify=df['Score'])
+
+no_of_training_samples = len(X_train)
+no_of_test_samples = len(X_test)
+total_samples = no_of_training_samples + no_of_test_samples
+print('Reviews Split\n')
+
+print("Total samples:\t\t%4d" % total_samples)
+print("Training samples:\t%4d (%2.2f%s)" % (no_of_training_samples, (no_of_training_samples / total_samples) * 100, "%"))
+print("Test samples:\t\t%4d (%2.2f%s)" % (no_of_test_samples, (no_of_test_samples / total_samples) * 100, "%"))
+
+#Checking that class probabilities are the same after stratified sampling.
+#training_rating_counts = y_train.value_counts()
+#testing_rating_counts = y_test.value_counts()
+#training_rating_probs = training_rating_counts / training_rating_counts.sum()
+#testing_rating_probs = testing_rating_counts / testing_rating_counts.sum()
+#print(training_rating_probs)
+#print(testing_rating_probs)
+
+#TF-IDF Bayes Network------------------------------------------------------------------------------------
+print('Naïve Bayes model with TF-IDF and Laplace Smoothing---------------------------------------------')
+print('Initalizing Vector...')
+tfidf_vectorizer = TfidfVectorizer()
+print('Vector Initalized')
+
+#Transforming x train and test to TF-IDF
+print('Fitting and Transforming Data...')
+X_train_tfidf = tfidf_vectorizer.fit_transform(X_train)
+X_test_tfidf = tfidf_vectorizer.transform(X_test)
+print('Data fitted and transformed')
+
+#Making the model with Laplace smoothing
+print('Training Multinomial Naive Bayes classifier with Laplace smoothing...')
+print('Using TF-IDF Values')
+alpha_value = 2.0
+model = MultinomialNB(alpha=alpha_value)
+
+#Fitting the model with TF_IDF values and y_train
+model.fit(X_train_tfidf, y_train)
+print('Classifier Trained')
+
+#Predicting the scores
+print('Predicting Scores...')
+predicted_scores = model.predict(X_test_tfidf)
+print('Scores Predicted')
+
+#Calculating scores against y_test
+print("Accuracy:\t%f" % accuracy_score(y_test, predicted_scores))
+print("F1-score:\t%f" % f1_score(y_test, predicted_scores, average='macro'))
+print("Precision:\t%f" % precision_score(y_test, predicted_scores, average='macro'))
+print("Recall:\t\t%f" % recall_score(y_test, predicted_scores, average='macro'))
+print("\nClassification performance:\n%s" % classification_report(y_test, predicted_scores, zero_division=0))
+
+#Printing Confusin Matrix
+mat_bayes = confusion_matrix(y_test, predicted_scores)
+sns.heatmap(mat_bayes.T, square=True, annot=True, fmt="d")
+plt.xlabel("True label")
+plt.ylabel("Predicted label")
+plt.show()
+
+Data_Bayes ={
+    'model': model,
+    'accuracy': accuracy_score(y_test, predicted_scores),
+    'f1_score': f1_score(y_test, predicted_scores, average='macro'),
+    'precision': precision_score(y_test, predicted_scores, average='macro'),
+    'recall': recall_score(y_test, predicted_scores, average='macro')}
+
+#Saving model
+with open("naive_bayes_tfidf.pkl", 'wb') as file:
+    pickle.dump(model, file)
+
+print('\nTraining CBOW word2vec model on reviews------------------------------------------------------------')
+print('Splitting X Train Data to Setences...')
+#GeekforGeeks used for a guide: https://www.geeksforgeeks.org/python-word-embedding-using-word2vec/
+#Okan also used: https://okan.cloud/posts/2022-05-02-text-vectorization-using-python-word2vec/
+start_time = time.time()
+#Splitting the text into sentences
+sentences = []
+for text in X_train:
+    #split to sentences
+    text_sentences = sent_tokenize(text)
+    for sentence in text_sentences:
+        #split sentences to words
+        words = word_tokenize(sentence)
+        #print(words)
+        sentences.append(words)
+
+print('Sentences Split')
+print('Training and Building CBOW Model...')
+word2vec_model = Word2Vec(vector_size=150, window=5, min_count=1, sg=0)
+word2vec_model.build_vocab(sentences, progress_per=1000)
+word2vec_model.train(sentences, total_examples=word2vec_model.corpus_count, epochs=word2vec_model.epochs)
+
+
+end_time = time.time()
+time_taken = end_time - start_time
+mins = int(time_taken// 60)
+secs = int(time_taken % 60)
+print(f'Model Trained in {mins}m and {secs}s')
+
+
+#Embedding Reviews function--------------------------------------------------------
+def text_to_word2vec(text):
+    embeddings = []
+    for word in text.split():
+        if word in word2vec_model.wv:
+            embeddings.append(word2vec_model.wv[word])
+    embeddings = np.array(embeddings)
+    #Absolute value only to ensure non-negative values
+    embeddings = np.abs(embeddings)
+    return np.mean(embeddings, axis=0) if embeddings.any() else np.zeros(word2vec_model.vector_size)
+
+
+#K-Nearest Classifier------------------------------------------------------------
+print('Converting X Training and Test sets to Word2Vec Arrays------------------------')
+start_time = time.time()
+X_train_word2vec = np.array([text_to_word2vec(text) for text in X_train])
+X_test_word2vec = np.array([text_to_word2vec(text) for text in X_test])
+end_time = time.time()
+time_taken = end_time - start_time
+mins = int(time_taken// 60)
+secs = int(time_taken % 60)
+print(f'Converted in {mins}m and {secs}s')
+      
+#List of k-Nearest Neighbours to iterate through
+k_neighbours = [1,3,5,7]
+
+#List of values to store for each iteration
+acc_list = []
+f1_list = []
+prec_list = []
+recall_list  = []
+
+from sklearn.model_selection import cross_val_score
+#Looping through k for each neighbour
+for k in k_neighbours:
+    start_time = time.time()
+    print(f'\nTraining KNN classifier with {k} nearest neighbours..')
+    #Setting the model with k neighbour
+    model = KNeighborsClassifier(n_neighbors=k)
+    
+    #Cross validation
+    accuracy = cross_val_score(model, X_train_word2vec, y_train, cv=5, scoring='accuracy')
+    #Mean of cross validation score
+    accuracy = np.mean(accuracy)
+    
+    #Fitting the model
+    model.fit(X_train_word2vec, y_train)
+    print('Classifier Trained')
+    
+    #Predicting scores of the test set
+    print(f'Predicting Score of {k}-Nearest Neighbours...')
+    predicted_scores = model.predict(X_test_word2vec)
+    print('Scores Predicted')
+    
+    #Calculating the performance
+    print('Calculating Performance...')
+    f1_val  = f1_score(y_test, predicted_scores, average='macro')
+    precision = precision_score(y_test, predicted_scores, average='macro')
+    recall = recall_score(y_test, predicted_scores, average='macro')
+    classification_rep = classification_report(y_test, predicted_scores)
+    print('Performance Calculated')
+
+    #Appending performance to lists outside of loop
+    acc_list.append(accuracy)
+    f1_list.append(f1_val)
+    prec_list.append(precision)
+    recall_list.append(recall)
+
+    print("Mean Cross Val Accuracy:", accuracy)
+    print("F1-score:", f1_val)
+    print("Precision:", precision)
+    print("Recall:", recall)
+    print("\nClassification Report:\n", classification_rep)
+    
+    end_time = time.time()
+    time_taken = end_time - start_time
+    mins = int(time_taken// 60)
+    secs = int(time_taken % 60)
+    print(f'{k}-Nearest Neighbours predicted in {mins}m and {secs}s')
+    
+    #For some reason my matrix would only show 0-4 for all of them even though it predicts 1-5, 
+    #i tried adding one to the values for the matrix but it would not work so left it the same throughout for consistancy
+    mat = confusion_matrix(y_test, predicted_scores)
+    sns.heatmap(mat.T, square=True, annot=True, fmt="d")
+    plt.xlabel("True label")
+    plt.ylabel("Predicted label")
+    plt.show()
+
+
+#Get mean performance to also plot as a baseline average for each K
+mean_performance = [(acc + f1 + precision + recall) / 4 for acc, f1, precision, recall in zip(acc_list, f1_list, prec_list, recall_list)]
+
+print('Plotting K Neighbours vs Mean, Mean Cross Val Accuracy, F1, Precision and Recall')
+plt.figure(figsize=(10, 6))
+#Accuracy
+plt.plot(k_neighbours, acc_list, label='Mean Cross Val Accuracy', marker='o', color='red')
+#F1
+plt.plot(k_neighbours, f1_list, label='F1-score', marker='o', color='blue')
+#Precision
+plt.plot(k_neighbours, prec_list, label='Precision', marker='o', color='orange')
+#Recall
+plt.plot(k_neighbours, recall_list, label='Recall', marker='o', color='yellow')
+#Mean
+plt.plot(k_neighbours, mean_performance, label='Mean Performance', marker='x', color='black')
+plt.title('K vs. Classification Performance')
+plt.xlabel('Number of Neighbors (k)')
+plt.ylabel('Performance Metric')
+plt.xticks(k_neighbours)
+plt.grid(True)
+plt.legend()
+plt.tight_layout()
+plt.show()
+
+#Getting index of each max value in each list using the argmax function
+best_accuracy = np.argmax(acc_list)
+best_f1 = np.argmax(f1_list)
+best_precision = np.argmax(prec_list)
+best_recall = np.argmax(recall_list)
+best_mean = np.argmax(mean_performance)
+
+
+#Show the highest scoring based on the index returned from the argmax function for each K
+print(f"Best accuracy was (k={k_neighbours[best_accuracy]}): {acc_list[best_accuracy]}")
+print(f"Best f1 was (k={k_neighbours[best_f1]}): {f1_list[best_f1]}")
+print(f"Best precision was (k={k_neighbours[best_precision]}): {prec_list[best_precision]}")
+print(f"Best recall was (k={k_neighbours[best_recall]}): {recall_list[best_recall]}")
+print(f"Best mean score was (k={k_neighbours[best_mean]}): {recall_list[best_mean]}")
+
+#Put the top occurances in a list
+best_together = [best_accuracy, best_f1, best_precision, best_recall]
+#Count the top appearing K neighbour by counting all Ks
+k_count = Counter([k_neighbours[i] for i in best_together])
+#Get the most common K
+most_common = k_count.most_common(1)[0][0]
+print(f"The most common occuring k value: {most_common}")
+
+print(f'Remaking most occuring {most_common} Neighbours')
+best_model = KNeighborsClassifier(n_neighbors=most_common)
+best_model.fit(X_train_word2vec, y_train)
+predicted_scores_best = best_model.predict(X_test_word2vec)
+print('Remade')
+
+#Save Model
+with open("knn_word2vec.pkl", 'wb') as file:
+    pickle.dump(best_model, file)
+
+#Getting index for the best performing Value
+index = k_neighbours.index(most_common)
+
+#Get the metrics and confusion matrix for k=7
+accuracy = acc_list[index]
+f1 = f1_list[index]
+precision = prec_list[index]
+recall = recall_list[index]
+confusion_matrix_best = confusion_matrix(y_test, predicted_scores_best)
+
+
+Data_best_knn = {
+    'accuracy': accuracy,
+    'f1_score': f1,
+    'precision': precision,
+    'recall': recall,
+    'confusion_matrix': confusion_matrix_best
+}
+
+#Did an extra model for Feed Forward
+#Document Embedding ---------------------------------------------------------------
+#A word word sparse matrix function
+def word_word_matrix_sparse(vocabulary, words_list, context_size):
+    print('\nCreating A word_word sparse matrix...')
+    print(f'Context Size set to: {context_size}')
+    start_time = time.time()
+    word_to_index = {word: idx for idx, word in enumerate(vocabulary)}
+    matrix_data = []
+    matrix_row_indices = []
+    matrix_col_indices = []
+
+    for i, word in enumerate(words_list):
+        context = []
+        for j in range(i - context_size, i + context_size + 1):
+            if j != i and 0 <= j < len(words_list):
+                context.append(words_list[j])
+
+        for context_word in context:
+            if word in word_to_index and context_word in word_to_index:
+                word_idx = word_to_index[word]
+                context_idx = word_to_index[context_word]
+                matrix_data.append(1)
+                matrix_row_indices.append(word_idx)
+                matrix_col_indices.append(context_idx)
+                
+        if i % 5000000 == 0:
+            print(f'Processed {i} words out of {len(words_list)}')
+
+    co_occurrence_matrix = csr_matrix(
+        (matrix_data, (matrix_row_indices, matrix_col_indices)),
+        shape=(len(vocabulary), len(vocabulary))
+    )
+    end_time = time.time()
+    time_taken = end_time - start_time
+    mins = int(time_taken// 60)
+    secs = int(time_taken % 60)
+    print(f'Matrix Created in {mins}m and {secs}s')
+    return co_occurrence_matrix
+
+#Setting the size of context for the matrix
+context_size = 4
+#Calling the function
+word_word_matrix_sparse = word_word_matrix_sparse(vocabulary, corpus, context_size)
+
+#Computing truncated SVD with 300 dimensions------------------------------------
+print('\nComputing truncated SVD...')
+start_time = time.time()
+num_dimensions = 300
+print(f'Number of Dimensions for SVD: {num_dimensions}')
+#Creating a float version to pass into the svds function
+word_word_matrix_sparse_float = word_word_matrix_sparse.astype(float)
+u, s, vt = svds(word_word_matrix_sparse_float, k=num_dimensions)
+end_time = time.time()
+time_taken = end_time - start_time
+mins = int(time_taken// 60)
+secs = int(time_taken % 60)
+print(f'Sparse Matrix converted to SVDs in {mins}m and {secs}s')
+
+
+#A feed forward network------------------------------------------------------------------------
+print('Feed Forward network-------------------------------------------------')
+print('\nBuilding Model...')
+start_time = time.time()
+#Creating and converting to dense word embeddings
+word_embeddings = np.dot(u, np.diag(np.sqrt(s)))
+#Using dense embeddings in model
+embedding_size = word_embeddings.shape[1]
+print("Model Embedding Size:", embedding_size)
+
+model = tf.keras.models.Sequential()
+model.add(tf.keras.Input(shape=(embedding_size,)))
+#Max validation accuracy: 68.30% for first two layers
+model.add(tf.keras.layers.Dense(5, activation='relu'))
+model.add(tf.keras.layers.Dense(5, activation='softmax'))
+#When adding tanh activation 63.73% so has been left out
+#model.add(tf.keras.layers.Dense(5, activation='tanh'))
+#Adding a LeakyReLu returned a Max validation accuracy: 5.27% so has been left out
+#model.add(tf.keras.layers.Dense(5, activation=tf.keras.layers.LeakyReLU(alpha=0.1)))
+#Added another relu layer and returned a Max validation accuracy: 70.08%
+model.add(tf.keras.layers.Dense(5, activation='softmax'))
+#These three layers performed best from testing
+
+end_time = time.time()
+time_taken = end_time - start_time
+mins = int(time_taken// 60)
+secs = int(time_taken % 60)
+print(f'Model built in {mins}m and {secs}s')
+model.summary()
+
+print('\nCompiling Model at 0.01 learning rate...')
+opt = tf.keras.optimizers.Adam(learning_rate=0.001)
+model.compile(optimizer=opt, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+print('Model Compiled')
+
+print('\nCreating Arrays and Embedding...')
+start_time = time.time()
+print('TF-IDF Vectorising...')
+#TF-IDF vectorizer
+vectorizer = TfidfVectorizer(max_features=embedding_size)
+print('Vectorised')
+
+#Fit and transform
+print('Fitting and Transforming X train and X test split sets... ')
+X_train_custom = vectorizer.fit_transform(X_train)
+X_test_custom = vectorizer.transform(X_test)
+print('Fitted and Transformed')
+
+print('\nShapes of Training and Testing sets:')
+print("X_train shape:", X_train_custom.shape)
+print("y_train shape:", y_train.shape)
+print("X_test shape:", X_test_custom.shape)
+print("y_test shape:", y_test.shape)
+
+#Convert to arrays to pass into model
+print('Converting to arrays for input...')
+X_train_custom = X_train_custom.toarray()
+X_test_custom = X_test_custom.toarray()
+print('Converted')
+
+#Subtract from each label to convert them to 0-4 values to pass into model as takes 0-5 input
+y_train = y_train - 1
+y_test = y_test - 1
+
+end_time = time.time()
+time_taken = end_time - start_time
+mins = int(time_taken// 60)
+secs = int(time_taken % 60)
+print(f'Created Arrays and Embedded in {mins}m and {secs}s')
+
+
+#Fitting Model
+EPOCHS = 50
+early_stopping = EarlyStopping(monitor='val_accuracy', patience=5, restore_best_weights=True)
+history = model.fit(x=X_train_custom, y=y_train, validation_data=(X_test_custom, y_test), 
+                    epochs=EPOCHS, batch_size=200, callbacks=[early_stopping], verbose=1)
+
+#Making predictions
+predictions = model.predict(X_test_custom)
+
+accuracy = accuracy_score(y_test, np.argmax(predictions, axis=1))
+f1_val = f1_score(y_test, np.argmax(predictions, axis=1), average='weighted')
+precision = precision_score(y_test, np.argmax(predictions, axis=1), average='weighted')
+recall = recall_score(y_test, np.argmax(predictions, axis=1), average='weighted')
+classification_rep = classification_report(y_test, np.argmax(predictions, axis=1))
+
+print("Accuracy:", accuracy)
+print("F1-score:", f1_val)
+print("Precision:", precision)
+print("Recall:", recall)
+print("\nClassification Report:\n", classification_rep)
+
+#Plotting
+plt.style.use('ggplot')
+fig, (ax1, ax2) = plt.subplots(2, figsize=(12, 6), sharex=True)
+ax1.set_ylim([0, 1.01])
+ax1.plot(history.history['val_accuracy'], 'b')
+ax1.set_ylabel("Accuracy")
+ax1.plot(history.history['accuracy'], 'r')
+ax1.legend(['Validation', 'Training'])
+ax2.set_ylim([0, 1])
+ax2.plot(history.history['val_loss'], 'b')
+ax2.plot(history.history['loss'], 'r')
+ax2.set_ylabel("Loss")
+ax2.set_xlabel("Epochs")
+ax2.legend(['Validation', 'Training'])
+plt.show()
+
+#Confusion matrix
+discrete_predictions = np.argmax(predictions, axis=1)
+conf_matrix = confusion_matrix(y_test, discrete_predictions)
+
+#Plot
+plt.figure(figsize=(8, 6))
+sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues')
+plt.xlabel('Predicted labels')
+plt.ylabel('True labels')
+plt.title('Confusion Matrix')
+plt.show()
+
+#Classification report
+class_report = classification_report(y_test, discrete_predictions)
+print(class_report)
+
+y_train = y_train + 1
+y_test = y_test + 1
+
+
+#Embedding Reviews function--------------------------------------------------------
+def text_to_word2vec(text):
+    embeddings = []
+    for word in text.split():
+        if word in word2vec_model.wv:
+            embeddings.append(word2vec_model.wv[word])
+    embeddings = np.array(embeddings)
+    #Absolute value only to ensure non-negative values
+    embeddings = np.abs(embeddings)
+    return np.mean(embeddings, axis=0) if embeddings.any() else np.zeros(word2vec_model.vector_size)
+
+#CNN Using Word2Vec---------------------------------------------------------------------------
+#A new word2vec model was used to get a vector size that was able to be square rooted to an int
+
+print('Training and Building CBOW Model for CNN...')
+#A NEW WORD2VEC MODEL WITH A NUMBER THAT HAS A INTEGER SQUARE ROOT TO PASS INTO THE MODEL
+word2vec_model = Word2Vec(vector_size=64, window=5, min_count=1, sg=0)
+word2vec_model.build_vocab(sentences, progress_per=1000)
+word2vec_model.train(sentences, total_examples=word2vec_model.corpus_count, epochs=word2vec_model.epochs)
+
+end_time = time.time()
+time_taken = end_time - start_time
+mins = int(time_taken// 60)
+secs = int(time_taken % 60)
+print(f'Model Trained in {mins}m and {secs}s')
+
+print('Converting X Training and Test sets to Word2Vec Arrays------------------------')
+start_time = time.time()
+X_train_word2vec = np.array([text_to_word2vec(text) for text in X_train])
+X_test_word2vec = np.array([text_to_word2vec(text) for text in X_test])
+end_time = time.time()
+time_taken = end_time - start_time
+mins = int(time_taken// 60)
+secs = int(time_taken % 60)
+print(f'Converted in {mins}m and {secs}s')
+
+
+#CNN Model using word2vec------------------------------------------------------------------------
+print('\nCNN Model using word2vec---------------------------------------------')
+#Used tensorflow guide: https://tensorflow.org/tutorials/images/cnn
+#Used Kaggle Guide: https://www.kaggle.com/code/kanncaa1/convolutional-neural-network-cnn-tutorial
+#Used datacamp guide: https://www.datacamp.com/tutorial/convolutional-neural-networks-python
+
+#Encoding labels to then turn to onehotencoding
+print('\nEncoding labels...')
+label_encoder = LabelEncoder()
+all_scores = pd.concat([y_train, y_test])
+label_encoder.fit(all_scores)
+y_train_encoded = label_encoder.transform(y_train)
+y_test_encoded = label_encoder.transform(y_test)
+print('labels Encoded')
+print("Encoded Labels:", label_encoder.classes_)
+
+num_classes = len(label_encoder.classes_)
+print('\nOne Hot Encoding Labels...')
+y_train_one_hot = to_categorical(y_train_encoded, num_classes=num_classes)
+y_test_one_hot = to_categorical(y_test_encoded, num_classes=num_classes)
+
+print("Shape of y_train hot encoded:", y_train_one_hot.shape)
+print("Shape of y_test hot encoded:", y_test_one_hot.shape)
+
+#Getting the max sequence length of the word2vec sequences
+train_sequence_lengths = [len(seq) for seq in X_train_word2vec]
+test_sequence_lengths = [len(seq) for seq in X_test_word2vec]
+all_sequence_lengths = train_sequence_lengths + test_sequence_lengths
+max_sequence_length = max(all_sequence_lengths)
+print("Max seq length:",max_sequence_length)
+
+#padding X variables to match the word2vec and match sequence length to pass into model
+X_train_padded = pad_sequences(X_train_word2vec, maxlen=max_sequence_length, padding='post')
+X_test_padded = pad_sequences(X_test_word2vec, maxlen=max_sequence_length, padding='post')
+
+print("\nShape of X_train_padded:", X_train_padded.shape)
+print("Shape of X_test_padded:", X_test_padded.shape)
+print("Shape of y_train_one_hot:", y_train_one_hot.shape)
+print("Shape of y_test_one_hot:", y_test_one_hot.shape)
+embedding_dim = word2vec_model.vector_size
+print('Embedding Size:', embedding_dim)
+
+#Setting the target shape as the square root of the embedding so we can pass a n x n matrix into the 2d model
+target_shape = int(embedding_dim ** 0.5)
+
+print('\nReshaping X variables to pass into 2d CNN...')
+#Padding to make matrixs nxn
+X_train_padded_square = pad_sequences(X_train_padded, maxlen=target_shape ** 2, padding='post')
+X_test_padded_square = pad_sequences(X_test_padded, maxlen=target_shape ** 2, padding='post')
+#Adding channels to pass into the 2d CNN
+X_train_reshaped = X_train_padded_square.reshape(-1, target_shape, target_shape, 1)
+X_test_reshaped = X_test_padded_square.reshape(-1, target_shape, target_shape, 1)
+print("Shape of X_train_reshaped:", X_train_reshaped.shape)
+print("Shape of X_test_reshaped:", X_test_reshaped.shape)
+
+print('\nBuilding Model...')
+model = Sequential([
+    Conv2D(32, (3, 3), activation='relu', input_shape=(8, 8, 1), padding='same'),
+    MaxPooling2D((2, 2)),
+    Conv2D(64, (3, 3), activation='relu', padding='same'),
+    MaxPooling2D((2, 2)),
+    Conv2D(64, (3, 3), activation='relu', padding='same'),
+    Flatten(),
+    Dense(64, activation='relu'),
+    Dense(5, activation='softmax')
+])
+
+#Compile model
+model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+print('Model Build')
+model.summary()
+
+
+#Setting an early stopping of 5 iterations
+early_stopping = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
+
+#Training the model
+history = model.fit(X_train_reshaped, y_train_one_hot, epochs=25, batch_size=200, validation_data=(X_test_reshaped, y_test_one_hot))
+
+#Evaluation
+predicted_scores = np.argmax(model.predict(X_test_reshaped), axis=-1)
+accuracy = accuracy_score(y_test_encoded, predicted_scores)
+f1_val = f1_score(y_test_encoded, predicted_scores, average='macro')
+precision = precision_score(y_test_encoded, predicted_scores, average='macro')
+recall = recall_score(y_test_encoded, predicted_scores, average='macro')
+classification_rep = classification_report(y_test_encoded, predicted_scores)
+
+print('Accuracy:', accuracy)
+print('F1 Score:', f1_val)
+print('Precision:', precision)
+print('Recall:', recall)
+print('Classification Report:\n', classification_rep)
+
+#Confusion matrix
+mat = confusion_matrix(y_test_encoded, predicted_scores)
+sns.heatmap(mat.T, square=True, annot=True, fmt="d", cmap='Blues')
+plt.xlabel("True label")
+plt.ylabel("Predicted label")
+plt.show()
+
+#Saving to use later
+Data_CNN = {
+    'accuracy': accuracy,
+    'f1_score': f1_val,
+    'precision': precision,
+    'recall': recall,
+    'confusion_matrix': mat
+}
+
+with open("CNN_word2vec.pkl", 'wb') as file:
+    pickle.dump(model, file)
+
+print('\RNN Model------------------------------------------------------------')
+#Fitting the data to fit into the RNN
+y_test_less = y_test - 1
+y_train_less = y_train - 1
+
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+import tensorflow as tf
+from tensorflow.keras.layers import TextVectorization
+#Since a very large vocabulary setting as 50000
+MAX_VOCABULARY_WORDS = 50000
+MAX_SEQUENCE_LENGTH = 200
+#leaving embedding dimension as 10
+EMBEDDING_DIM = 10
+print('Max Vocab:', MAX_VOCABULARY_WORDS)
+print('Max Sequence:', MAX_SEQUENCE_LENGTH)
+print('Embedding Dimension:', MAX_SEQUENCE_LENGTH)
+
+#Vectorising function
+vectorize_layer = TextVectorization(
+    max_tokens=MAX_VOCABULARY_WORDS,
+    output_mode='int',
+    output_sequence_length=MAX_SEQUENCE_LENGTH)
+
+#Vectorising X train
+print('\nVectorising Layers...')
+vectorize_layer.adapt(X_train)
+vocabulary = vectorize_layer.get_vocabulary() 
+print("Vocabulary size: " + str(len(vocabulary)) + " words")
+print('Vectorised')
+
+#5 Classes as output
+num_classes = 5
+print('Number of Classes:', num_classes)
+
+#Building LSTM
+model = Sequential(name="LSTM")
+model.add(Input(shape=(1,), dtype=tf.string))
+
+#Adding the features to the model
+model.add(vectorize_layer)
+model.add(Embedding(input_dim=MAX_VOCABULARY_WORDS,output_dim=EMBEDDING_DIM))
+
+#Two Bidirectional layers
+model.add(Bidirectional(LSTM(16,return_sequences=True)))
+#Not going back
+model.add(Bidirectional(LSTM(16,go_backwards=False,dropout=0.2)))
+#A softmax function to implmenent
+model.add(Dense(num_classes, activation='softmax'))
+model.summary()
+
+#After testing this seemed not too computationally complex and allowed good results in a good time period
+EPOCHS = 4
+BATCH_SIZE = 200
+LEARNING_RATE = 0.01
+
+#Compiling a 'sparse_categorical_crossentropy' model 
+opt = Adam(learning_rate=LEARNING_RATE) 
+model.compile(loss='sparse_categorical_crossentropy',
+              optimizer=opt,
+              metrics=['accuracy'])  
+
+#Setting early stopping as 3
+early_stopping = EarlyStopping(monitor='val_loss', patience=3, verbose=1, mode='min')
+history = model.fit(X_train, y_train_less,
+                    epochs=EPOCHS, batch_size=BATCH_SIZE,
+                    validation_split=0.1,
+                    callbacks=[early_stopping])
+
+#Predicting and calculating metrics
+predicted_scores = np.argmax(model.predict(X_test), axis=-1)
+accuracy = accuracy_score(y_test_less, predicted_scores)
+f1_val = f1_score(y_test_less, predicted_scores, average='macro')
+precision = precision_score(y_test_less, predicted_scores, average='macro')
+recall = recall_score(y_test_less, predicted_scores, average='macro')
+classification_rep = classification_report(y_test_less, predicted_scores)
+
+#Printing
+print('Accuracy:', accuracy)
+print('F1 Score:', f1_val)
+print('Precision:', precision)
+print('Recall:', recall)
+print('Classification Report:\n', classification_rep)
+
+#Confusion Matrix
+mat = confusion_matrix(y_test_less, predicted_scores)
+sns.heatmap(mat.T, square=True, annot=True, fmt="d", cmap='Blues')
+plt.xlabel("True label")
+plt.ylabel("Predicted label")
+plt.show()
+
+#Saving for later
+Data_RNN = {
+    'accuracy': accuracy,
+    'f1_score': f1_val,
+    'precision': precision,
+    'recall': recall,
+    'confusion_matrix': mat
+}
+
+#Saving the model
+with open("RNN_model.pkl", 'wb') as file:
+    pickle.dump(model, file)
+
+print('Bayes Model Metrics:')
+print('Accuracy:', Data_Bayes['accuracy'])
+print('F1 Score:', Data_Bayes['f1_score'])
+print('Precision:', Data_Bayes['precision'])
+print('Recall:', Data_Bayes['recall'])
+
+
+print('\nConfusion matrix:')
+plt.figure(figsize=(8, 6))
+sns.heatmap(mat_bayes.T, square=True, annot=True, fmt="d")
+plt.xlabel("True label")
+plt.ylabel("Predicted label")
+#Making the labels show 1-5 like they should be 
+plt.xticks(np.arange(mat_bayes.shape[0]) + 0.5, labels=np.arange(mat_bayes.shape[0]) + 1)
+plt.yticks(np.arange(mat_bayes.shape[1]) + 0.5, labels=np.arange(mat_bayes.shape[1]) + 1)
+plt.show()
+
+
+print('\nKNN Bet Model Metrics (highligted earlier):')
+print('Accuracy:', Data_best_knn['accuracy'])
+print('F1 Score:', Data_best_knn['f1_score'])
+print('Precision:', Data_best_knn['precision'])
+print('Recall:', Data_best_knn['recall'])
+
+
+print('\nConfusion matrix:')
+plt.figure(figsize=(8, 6))
+sns.heatmap(Data_best_knn['confusion_matrix'].T, annot=True, cmap='Blues', fmt='d')
+plt.xlabel('Predicted Label')
+plt.ylabel('True Label')
+plt.xticks(np.arange(Data_best_knn['confusion_matrix'].shape[0]) + 0.5, labels=np.arange(Data_best_knn['confusion_matrix'].shape[0]) + 1)
+plt.yticks(np.arange(Data_best_knn['confusion_matrix'].shape[1]) + 0.5, labels=np.arange(Data_best_knn['confusion_matrix'].shape[1]) + 1)
+plt.title('Confusion Matrix')
+plt.show()
+
+print('\nCNN Model Metrics:')
+print('Accuracy:', Data_CNN['accuracy'])
+print('F1 Score:', Data_CNN['f1_score'])
+print('Precision:', Data_CNN['precision'])
+print('Recall:', Data_CNN['recall'])
+
+
+print('\nConfusion matrix:')
+plt.figure(figsize=(8, 6))
+sns.heatmap(Data_CNN['confusion_matrix'].T, annot=True, cmap='Blues', fmt='d')
+plt.xlabel('Predicted Label')
+plt.ylabel('True Label')
+plt.xticks(np.arange(Data_CNN['confusion_matrix'].shape[0]) + 0.5, labels=np.arange(Data_CNN['confusion_matrix'].shape[0]) + 1)
+plt.yticks(np.arange(Data_CNN['confusion_matrix'].shape[1]) + 0.5, labels=np.arange(Data_CNN['confusion_matrix'].shape[1]) + 1)
+
+plt.title('Confusion Matrix')
+plt.show()
+
+print('\nRNN Model Metrics:')
+print('Accuracy:', Data_RNN['accuracy'])
+print('F1 Score:', Data_RNN['f1_score'])
+print('Precision:', Data_RNN['precision'])
+print('Recall:', Data_RNN['recall'])
+
+
+print('\nConfusion matrix:')
+plt.figure(figsize=(8, 6))
+sns.heatmap(Data_RNN['confusion_matrix'].T, annot=True, cmap='Blues', fmt='d')
+plt.xlabel('Predicted Label')
+plt.ylabel('True Label')
+plt.xticks(np.arange(Data_RNN['confusion_matrix'].shape[0]) + 0.5, labels=np.arange(Data_RNN['confusion_matrix'].shape[0]) + 1)
+plt.yticks(np.arange(Data_RNN['confusion_matrix'].shape[1]) + 0.5, labels=np.arange(Data_RNN['confusion_matrix'].shape[1]) + 1)
+plt.title('Confusion Matrix')
+plt.show()
+
+#Performing preprocessing on the text so it can pass into the model as the standardized format
+def preprocess_text(text):
+    text = negation_prefix(text)
+    text = cleanfood_reviews(text)
+    text = stopwords(text)
+    text = Lemmatisation(text)
+    text = tokenize_review(text)
+    return text
+    
+    
+#Passing the processed text to be predicted
+def predict_food_review(text, model_name):
+    #Load the model
+    with open(model_name, 'rb') as file:
+        model = pickle.load(file)
+    #Get prediction    
+    pred = model.predict(text) 
+        
+    #Return prediction
+    return pred 
+
+
+#Texts to iterate through
+texts = [
+    "This product was some tasty amazing food!",
+    "This was some horrible food never buy this.",
+    "I did not mind this food, I wouldn't purchase again"
+]
+
+
+
+print('RNN Model')
+for text in texts:
+    #Process the text
+    text = preprocess_text(text)
+    #Pass in the text in list format
+    prediction = predict_food_review([text], "RNN_model.pkl")
+    #Use the argmax function to get the highest probability index
+    predicted_class_index = np.argmax(prediction)
+    #Get the predicted label with the index from the model
+    predicted_label = label_encoder.classes_[predicted_class_index]
+    #Print the text and prediction
+    print(f"Text: '{text}' -> Prediction: {predicted_label}")
+
+        
+print("\nBayes Model")
+for text in texts:
+    #Process the text
+    text = preprocess_text(text)
+    #Convert to TF-IDF to pass into model
+    text_tfidf = tfidf_vectorizer.transform([text])
+    #Pass into model
+    prediction = predict_food_review(text_tfidf, "naive_bayes_tfidf.pkl")
+    #Print
+    print(f"Text: '{text}' -> Prediction: {prediction}")
+    
+    
+print('\nCNN Model')
+for text in texts:
+    #Process the text
+    text = preprocess_text(text)
+    #Get the input shape as square root numbers of 64 for 2D CNN
+    input_shape = (1, 8, 8, 1)
+    #Get Word2Vec from model of CNN
+    text_word2vec = text_to_word2vec(text)
+    #Reshape the data to fit with the input shape
+    reshaped_data = np.reshape(text_word2vec, input_shape)
+    #Pass into model
+    prediction = predict_food_review(reshaped_data, "CNN_word2vec.pkl")
+    #Get the highest probability
+    predicted_class_index = np.argmax(prediction)
+    #Get the predicted class from the label index
+    predicted_label = label_encoder.classes_[predicted_class_index]
+    print(f"Text: '{text}' -> Predicted Label: {predicted_label}")
+    
+    
+print('\nKNN Model')
+#Need to remake the word2vec model as CNN overrode this
+word2vec_model = Word2Vec(vector_size=150, window=5, min_count=1, sg=0)
+word2vec_model.build_vocab(sentences, progress_per=1000)
+word2vec_model.train(sentences, total_examples=word2vec_model.corpus_count, epochs=word2vec_model.epochs)
+for text in texts:
+    #Process the text
+    text = preprocess_text(text)
+    #Convert to Word2Vec vectors
+    text_word2vec = text_to_word2vec(text)
+    #Reshape to fit
+    text_word2vec = np.array(text_word2vec).reshape(1, -1)
+    #Pass into model
+    prediction = predict_food_review(text_word2vec, "knn_word2vec.pkl")
+    print(f"Text: '{text}' -> Prediction: {prediction}")
+    
+
