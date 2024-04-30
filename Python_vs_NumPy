@@ -1,0 +1,374 @@
+import random as rand
+import numpy as np
+import timeit
+import matplotlib.pyplot as plt
+
+while True:
+    #Tries to assign all the variables as Int for the first iteration
+    try:
+        ListLength = int(input('Please input the length of the lists and arrays to be generated: '))
+        RandomMaxNumber = int(input('Please input the maximum size of integers in the list and arrays: '))
+        MinimumNumber = int(input('Please input the minimum size of integers in the list and arrays: '))
+        Timestorun = int(input('Enter the number of iterations to demonstrate time increase with doubled input size: '))
+        
+        #If the length is positive and the maximum random integer is larger than the minimum continue with the program
+        if (ListLength>0) and RandomMaxNumber > MinimumNumber and Timestorun>0:
+            #Continues with program
+            break
+        #If previous conditions are not true then will check the following conditions
+        else:
+            #Checks if length is 0 or less than then tells the user to provide a positive integer for the length
+            if ListLength <= 0:
+                print('Please provide a number greater than one for the length')
+            #Checks if the mimumum random int value is greater than the maximum randon int value
+            if Timestorun <0:
+                print('Please provide a number greater than 0 for the length')
+            if RandomMaxNumber < MinimumNumber:
+                #Tells the user to check that the max random int is greater than the mimumum
+                print('Please ensure that the maximum random integer in the list is greater than the minimum')
+    #If the previous blocks returns an error which is not met with any of our conditions e.g. a string
+    except:
+        #Tells the user their input was not valid and prompts an integer
+            print('Not a valid input, please enter an integer')
+
+Arraylength = ListLength
+#------------------------------------------------------------------------------------------------------------
+
+def TwoListTuple(ListLength):
+    '''Assigns a variable which creates a list by running a loop for 'ListLength' amount of times
+    for each itteration it appends a random integer to the list from the rand.randint function'''
+    List_one = [rand.randint(MinimumNumber, RandomMaxNumber) for _ in range(ListLength)]
+    #print(f'List One is {List_one}')
+    List_two = [rand.randint(MinimumNumber, RandomMaxNumber) for _ in range(ListLength)]
+    #print(f'List Two is {List_two}')
+    #Combine the two lists into a tuple
+    TupleOfLists = (List_one, List_two)
+    #Return the tuple as a result of completion of the function
+    return TupleOfLists
+
+
+def NdArrays(Arraylength):
+    array_one = np.random.randint(MinimumNumber,RandomMaxNumber,size=Arraylength)
+    #print(f'Array One is {array_one}')
+    array_two = np.random.randint(MinimumNumber,RandomMaxNumber,size=Arraylength)
+    #print(f'Array Two is {array_two}')
+    tuplearrays = array_one, array_two
+    return tuplearrays
+
+#------------------------------------------------------------------------------------------------------------
+def ListMultiply2(TupleOfLists):
+    List_one, List_two = TupleOfLists
+    try:
+        if len(List_one) != len(List_two):
+            print("Lists must have the same length")
+            #Creates a new list, multiplying each element from list one and list two using list comprehension
+            return
+        for i in List_one + List_two:            
+            #Checks is any values in the list are non numerical and highlights the issue
+            if not isinstance(i, (int,float)):
+                print('Please ensure all values in the list are numerical')
+                return
+        else:
+            MultipliedList2 = [a * b for a, b in zip(List_one, List_two)]
+            #Returns the new list
+            return MultipliedList2
+    except:
+        print('Incorrect value entered, please only input integers, please fix lists')
+
+def MultiplyNDArrays(tuplearrays):
+    array_one, array_two = tuplearrays
+    if array_one.shape != array_two.shape:
+        raise ValueError('arrays must be the same length for multiplication')
+    else:
+        MultipliedArray = np.multiply(array_one, array_two)
+        return MultipliedArray
+#------------------------------------------------------------------------------------------------------------
+#Listmultiplication Section for repeating and logging time and input
+timetaken_listmultiplication = {}
+timetaken_list_iteration = {}
+
+for i in range(Timestorun):
+    TupleOfLists = TwoListTuple(ListLength)
+    zub = timeit.timeit(lambda: ListMultiply2(TupleOfLists), globals=globals(), number=100000)
+    resultlists = ListMultiply2(TupleOfLists)
+    #print(f'List one multiplied by list two is: {resultlists}')
+    print(f'Time taken for list multiplication {i+1}: {zub} seconds')
+    timetaken_listmultiplication[ListLength] = zub
+    timetaken_list_iteration[i+1] = zub
+    ListLength *= 2
+print('List time calculation complete')
+print(timetaken_listmultiplication)
+print(timetaken_list_iteration)
+
+#Convert dictionary to lists to plot
+list_input_sizes_single  = list(timetaken_list_iteration.keys())
+list_timetaken_single = list(timetaken_list_iteration.values())
+
+# Scatterplot for lists
+list_input_sizes = list(timetaken_listmultiplication.keys())
+timetaken = list(timetaken_listmultiplication.values())
+plt.scatter(list_input_sizes, timetaken, label='List Iterations', c='b')
+plt.plot(list_input_sizes, timetaken, label='Slope of time increase for Lists', c='b')
+plt.xlabel('List/Array Sizes')
+plt.ylabel('Time (seconds)')
+plt.title(f'Execution Time vs. Size: max list value: {RandomMaxNumber}, min value: {MinimumNumber}')
+
+#------------------------------------------------------------------------------------------------------------
+#Arraymultiplication Section for repeating and logging time and input
+
+timetaken_arraymultiplication = {}
+timetaken_array_iteration = {}
+
+for i in range(Timestorun):
+    tuplearrays = NdArrays(Arraylength)
+    zubarray = timeit.timeit(lambda: MultiplyNDArrays(tuplearrays), globals=globals(), number=100000)
+    resultarrays = MultiplyNDArrays(tuplearrays)
+    #print(f'Array one multiplied by array two is: {resultlists}')
+    print(f'Time taken for array multiplication {i+1}: {zubarray} seconds')
+    timetaken_arraymultiplication[Arraylength] = zubarray
+    timetaken_array_iteration[i+1] = zubarray
+    Arraylength *= 2
+print('Array time calculation complete')
+print(timetaken_arraymultiplication)
+print(timetaken_array_iteration)
+
+#Convert dictionary to lists to plot
+array_input_sizes = list(timetaken_arraymultiplication.keys())
+array_timetaken = list(timetaken_arraymultiplication.values())
+
+#Scattergraph and plot for arrays
+plt.scatter(array_input_sizes, array_timetaken, label='Array Iterations', c='r')
+plt.plot(array_input_sizes, array_timetaken, label='Slope of time increase for Arrays', c='r')
+plt.legend()
+
+#Plot for time in comparison to iterations completed
+plt.figure()
+array_input_sizes_single = list(timetaken_array_iteration.keys())
+array_timetaken_single = list(timetaken_array_iteration.values())
+plt.scatter(array_input_sizes_single, array_timetaken_single, label='Array Iterations', c='g')
+plt.plot(array_input_sizes_single, array_timetaken_single, label='Slope of time increase for Arrays', c='g')
+plt.scatter(list_input_sizes_single, list_timetaken_single, label='List Iterations', c='r')
+plt.plot(list_input_sizes_single, list_timetaken_single, label='Slope of time increase for Lists', c='r')
+plt.xlabel('Iterations')
+plt.ylabel('Time (seconds)')
+plt.title(f'Execution Time vs. Iteration of double input: max list value: {RandomMaxNumber}, min value: {MinimumNumber}')
+
+plt.legend()
+plt.show()
+
+#Plot for array
+plt.figure()
+plt.scatter(array_input_sizes_single, array_timetaken_single, label='Array Iterations', c='g')
+plt.plot(array_input_sizes_single, array_timetaken_single, c='g')
+plt.xlabel('Array iterations')
+plt.ylabel('Time Taken (seconds)')
+plt.title('Array Iterations against Time')
+plt.legend()
+plt.show()
+
+#------------------------------------------------------------------------------------------------------------
+
+while True:
+    try:
+        n = int(input('Please input the n,n dimension of the matricies: '))
+        Minmatrixvalue = int((input('Please input the minimum matrix value: ')))
+        Maxmatrixvalue = int((input('Please input the maximum matrix value: ')))
+        iterations = int((input('Please input the number of iterations to double input size and time functions: ')))
+        if n > 0:
+                if Minmatrixvalue < Maxmatrixvalue:
+                    if iterations > 0:
+                        break   
+                    else:
+                        print('Please enter a positive integer to run the iterations for')
+                else:
+                    print('The max value must be larger than the mimumum value')
+        else:
+            print('Please enter a positive integer for matrix dimensions')              
+
+    except:
+        #Tells the user their input was not valid and prompts a integer
+            print('Not a valid input, please enter an integer again')
+#------------------------------------------------------------------------------------------------------------
+
+
+def generate_matricies(n):
+    matrix1 = np.random.randint(Minmatrixvalue, Maxmatrixvalue, size=(n, n))
+    matrix2 = np.random.randint(Minmatrixvalue, Maxmatrixvalue, size=(n, n))
+    #print(type(matrix1), type(matrix2))
+    matriciesreturn = matrix1, matrix2
+    return matriciesreturn
+
+#------------------------------------------------------------------------------------------------------------
+
+def matricesabsolute(matriciesreturn):
+    matrix1, matrix2 = matriciesreturn
+    return np.abs(matrix1 - matrix2)
+
+def matrixmultiplication(matriciesreturn):
+    matrix1, matrix2 = matriciesreturn
+    multipliedmatrix = np.matmul(matrix1, matrix2)
+    return multipliedmatrix
+    
+def mymatrixmultiplication(matriciesreturn):
+    matrix1, matrix2 = matriciesreturn
+    #Create an empty matrix to fill with the multiplied elements
+    answer = np.zeros((n, n), dtype=int)
+    #Go through rows of first matrix
+    for _ in range(n):
+        #Go through columns of second matrix
+        for z in range(n):
+            #Go through rows of second matrix
+            for q in range(n):
+                '''Updated the answer matrix in row _ column z and updates it with the sum 
+                of matrix one row _ column q * matrix 2 row q column z for the correct number of iterations '''
+                answer[_][z] += matrix1[_][q] * matrix2[q][z]
+    return answer
+
+#------------------------------------------------------------------------------------------------------------
+
+def checksimilarity(matriciesreturn):
+    matrix1, matrix2 = matriciesreturn
+    my_function_result = mymatrixmultiplication(matrix1, matrix2)
+    numpy_result = matrixmultiplication(matrix1, matrix2)
+    if np.array_equal(numpy_result, my_function_result):
+        print('Match')
+    else:
+        print('Different')
+    
+#------------------------------------------------------------------------------------------------------------
+#Absolute Value Section for repeating and logging time and input
+
+#Saving n's value to reset back too after each loop for the next loop
+resettoken = n
+
+
+timetaken_q8 = {}
+timetaken_q8_iteration = {}
+
+for i in range(iterations):
+    zubq8 = timeit.timeit(lambda: matricesabsolute(generate_matricies(n)), globals=globals(), number=100)
+    print(f'Time taken for absolute value iteration {i+1}, length {n} is: {zubq8} seconds')
+    timetaken_q8[n] = zubq8
+    timetaken_q8_iteration[i+1] = zubq8
+    n *= 2
+    
+n = resettoken
+
+print('Absolute Value calculation complete')
+print(timetaken_q8)
+#print(timetaken_q8_iteration)
+
+#Convert dictionary to lists to plot
+timetaken_q8_timetaken = list(timetaken_q8.values())
+
+
+#------------------------------------------------------------------------------------------------------------
+#NumPy Multiplication Section for repeating and logging time and input
+
+timetaken_q9 = {}
+timetaken_q9_iteration = {}
+
+for i in range(iterations):
+    zubq9 = timeit.timeit(lambda: matrixmultiplication(generate_matricies(n)), globals=globals(), number=100)
+    print(f'Time taken for matrix multiplication (NumPy) iteration {i+1}, length {n} is: {zubq9} seconds')
+    timetaken_q9[n] = zubq9
+    timetaken_q9_iteration[i+1] = zubq9
+    n *= 2
+
+n = resettoken
+
+print('Matrix Multiplication (NumPy) calculation complete')
+print(timetaken_q9)
+#print(timetaken_q9_iteration)
+
+#Convert dictionary to lists to plot
+timetaken_q9_timetaken = list(timetaken_q9.values())
+
+#------------------------------------------------------------------------------------------------------------
+#My function Multiplication Section for repeating and logging time and input
+
+timetaken_q10 = {}
+timetaken_q10_iteration = {}
+
+for i in range(iterations):
+    zubq10 = timeit.timeit(lambda: mymatrixmultiplication(generate_matricies(n)), globals=globals(), number=100)
+    print(f'Time taken for my matrix multiplication iteration {i+1}, length {n} is: {zubq10} seconds')
+    timetaken_q10[n] = zubq10
+    timetaken_q10_iteration[i+1] = zubq10
+    n *= 2
+
+print('Matrix My Multiplication calculation complete')
+print(timetaken_q10)
+
+
+#Convert dictionary to lists to plot
+timetaken_q10_timetaken = list(timetaken_q10.values())
+
+
+
+#------------------------------------------------------------------------------------------------------------
+#Matplot lib to plot
+
+#Plot for time vs matrix size
+plt.figure()
+plt.scatter(list(timetaken_q8.keys()), timetaken_q8_timetaken, label='Absolute Value', color='blue', marker='s')
+plt.plot(list(timetaken_q8.keys()), timetaken_q8_timetaken, color='blue', marker='s')
+
+plt.scatter(list(timetaken_q9.keys()), timetaken_q9_timetaken, label='NumPy Multiplication', color='red', marker='s')
+plt.plot(list(timetaken_q9.keys()), timetaken_q9_timetaken, color='red', marker='s')
+
+plt.scatter(list(timetaken_q10.keys()), timetaken_q10_timetaken, label='My Function Multiplication', color='green', marker='s')
+plt.plot(list(timetaken_q10.keys()), timetaken_q10_timetaken, color='green', marker='s')
+
+plt.xlabel('Matrix Size')
+plt.ylabel('Time Taken (seconds)')
+plt.title(f'Time Taken vs Matrix Size. Max random value: {Maxmatrixvalue}, min: {Minmatrixvalue}')
+plt.legend()
+
+#Plot for itteration vs matrix size
+plt.figure()
+plt.scatter(list(timetaken_q8_iteration.keys()), timetaken_q8_timetaken, label='Absolute Value', color='blue', marker='s')
+plt.plot(list(timetaken_q8_iteration.keys()), timetaken_q8_timetaken, label='Absolute Value', color='blue', marker='s')
+
+plt.scatter(list(timetaken_q9_iteration.keys()), timetaken_q9_timetaken, label='NumPy Multiplication', color='red', marker='s')
+plt.plot(list(timetaken_q9_iteration.keys()), timetaken_q9_timetaken, label='NumPy Multiplication', color='red', marker='s')
+
+plt.scatter(list(timetaken_q10_iteration.keys()), timetaken_q10_timetaken, label='My Function Multiplication', color='green', marker='s')
+plt.plot(list(timetaken_q10_iteration.keys()), timetaken_q10_timetaken, label='My Function Multiplication', color='green', marker='s')
+
+plt.xlabel('Iteration')
+plt.ylabel('Time Taken (seconds)')
+plt.title(f'Time Taken vs Iteration. Max random value: {Maxmatrixvalue}, min: {Minmatrixvalue}')
+plt.legend()
+plt.show()
+
+#Plot for matrix size and time taken my function vs NumPy
+plt.figure()
+
+plt.scatter(list(timetaken_q9.keys()), timetaken_q9_timetaken, label='NumPy Multiplication', color='red', marker='s')
+plt.plot(list(timetaken_q9.keys()), timetaken_q9_timetaken, label='NumPy Multiplication', color='red', marker='s')
+
+plt.scatter(list(timetaken_q10.keys()), timetaken_q10_timetaken, label='My Function Multiplication', color='green', marker='s')
+plt.plot(list(timetaken_q10.keys()), timetaken_q10_timetaken, label='My Function Multiplication', color='green', marker='s')
+
+plt.xlabel('Matrix Size')
+plt.ylabel('Time Taken (seconds)')
+plt.title(f'Sam vs NumPy. Max random value: {Maxmatrixvalue}, min: {Minmatrixvalue}')
+plt.legend()
+plt.show()
+
+#Plot for matrix size and time taken Absolute Value vs My Function
+plt.figure()
+
+plt.scatter(list(timetaken_q8.keys()), timetaken_q8_timetaken, label='Absolute Value', color='blue', marker='s')
+plt.plot(list(timetaken_q8.keys()), timetaken_q8_timetaken, color='blue', marker='s')
+
+plt.scatter(list(timetaken_q9.keys()), timetaken_q9_timetaken, label='NumPy Multiplication', color='red', marker='s')
+plt.plot(list(timetaken_q9.keys()), timetaken_q9_timetaken, color='red', marker='s')
+
+plt.xlabel('Matrix Size')
+plt.ylabel('Time Taken (seconds)')
+plt.title(f'Comparison of Numpy Values. Max random value: {Maxmatrixvalue}, min: {Minmatrixvalue}')
+plt.legend()
+plt.show()
+
