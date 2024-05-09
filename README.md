@@ -14,6 +14,12 @@ Welcome to my GitHub repository! Below you'll find a categorized list of project
 - **Description:** Testing numerous neural network models to find a regression model with the lowest mean absolute error, then make allow a user to predict their wage.
 - [View Project](https://github.com/Samuel-Mason-git/Recent-Projects/blob/main/Data_Engineer_ML_Regression.ipynb)
 
+## Web Scraping and Data Analysis
+
+### Webscraping and Bayesian Network for Finance Dataset
+
+- **Description:** Project involving webscraping of a lecturers publications, and Bayesian network analysis for a finance dataset.
+- [View Project](https://github.com/Samuel-Mason-git/Recent-Projects/blob/main/Webscraping%20and%20Bayesian%20Network%20for%20Finance%20Dataset)
 
 ## Algorithms and Data Structures
 
@@ -33,13 +39,6 @@ Welcome to my GitHub repository! Below you'll find a categorized list of project
 
 - **Description:** Comparison between Python and NumPy computational complexity for numerical operations.
 - [View Project](https://github.com/Samuel-Mason-git/Recent-Projects/blob/main/Python_vs_NumPy)
-
-## Web Scraping and Data Analysis
-
-### Webscraping and Bayesian Network for Finance Dataset
-
-- **Description:** Project involving webscraping of a lecturers publications, and Bayesian network analysis for a finance dataset.
-- [View Project](https://github.com/Samuel-Mason-git/Recent-Projects/blob/main/Webscraping%20and%20Bayesian%20Network%20for%20Finance%20Dataset)
 
 ## Security and Utilities
 
