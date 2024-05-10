@@ -9,6 +9,10 @@ Welcome to my GitHub repository! Below you'll find a categorized list of project
 - **Description:** Natural Language Processing (NLP) project analyzing food reviews using various machine learning models.
 - [View Project](https://github.com/Samuel-Mason-git/Recent-Projects/blob/main/NLP%20-%20Food%20Reviews%20-%20Bayes%2C%20KNN%2C%20CNN%2C%20FFN%2C%20RNN.)
 
+## - Neural Network Gender Binary Classification
+- **Description:** Gender identification through a form filled in by university students to identify if they are male or female.
+-  [View Project](https://github.com/Samuel-Mason-git/Recent-Projects/blob/main/Binary_Gender_Classification.ipynb)
+
 ### - Data Engineer Salary Predictor - Neural Network Regression Models 
 
 - **Description:** Testing numerous neural network models to find a regression model with the lowest mean absolute error, then make allow a user to predict their wage.
