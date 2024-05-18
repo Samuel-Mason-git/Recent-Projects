@@ -12,8 +12,12 @@ Welcome to my GitHub repository! Below you'll find a categorized list of project
 ### Multi-Label Image Classification Neural Network (Fruit Image Classification)
 
 - **Description:** Deep Neural Network to reshape, convert to array, classify and predict images of fruits into 10 different categories.
-- -**Note:** Model performed adiquately for the task but the limiting factor was the allocated Ram on Google Collab.
 - [View Project](https://github.com/Samuel-Mason-git/Recent-Projects/blob/main/Multi_Label_Fruit_Image_Classification.ipynb)
+
+### Multi-Label Image Classification Convolutional neural network and Data Augmentation (Fruit Image Classification)
+
+- **Description:** An extension of the previous Image Classification model to use a convolutional neural network to predict images of fruits into 10 different categories.
+- [View Project](https://github.com/Samuel-Mason-git/Recent-Projects/blob/main/CNN_Multi_Label_Fruit_with_Data_Augmentation.ipynb)
 
 ### Neural Network Gender Binary Classification
 
