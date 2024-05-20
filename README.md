@@ -14,6 +14,10 @@ Welcome to my GitHub repository! Below you'll find a categorized list of project
 - **Description:** Deep Neural Network to reshape, convert to array, classify and predict images of fruits into 10 different categories.
 - [View Project](https://github.com/Samuel-Mason-git/Recent-Projects/blob/main/Multi_Label_Fruit_Image_Classification.ipynb)
 
+### Binary Computer Vision Cats and Dog Classification
+- **Description:** CNN to classify if an image is a dog or a cat.
+- [View Project](https://github.com/Samuel-Mason-git/Recent-Projects/blob/main/CNN_Computer_Vision_Binary_Cats_and_Dogs.ipynb)
+
 ### Multi-Label Image Classification Convolutional neural network and Data Augmentation (Fruit Image Classification)
 
 - **Description:** An extension of the previous Image Classification model to use a convolutional neural network to predict images of fruits into 10 different categories.
