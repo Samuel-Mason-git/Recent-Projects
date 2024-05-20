@@ -9,19 +9,19 @@ Welcome to my GitHub repository! Below you'll find a categorized list of project
 - **Description:** Natural Language Processing (NLP) project analyzing food reviews using various machine learning models.
 - [View Project](https://github.com/Samuel-Mason-git/Recent-Projects/blob/main/NLP%20-%20Food%20Reviews%20-%20Bayes%2C%20KNN%2C%20CNN%2C%20FFN%2C%20RNN.)
 
+### Multi-Label Image Classification Convolutional neural network and data augmentation (Fruit Image Classification)
+
+- **Description:** An extension of the previous Image Classification model to use a convolutional neural network to predict images of fruits into 10 different categories.
+- [View Project](https://github.com/Samuel-Mason-git/Recent-Projects/blob/main/CNN_Multi_Label_Fruit_with_Data_Augmentation.ipynb)
+
+### Binary Computer Vision Cats and Dog Classification convolutional neural network with data augmentation
+- **Description:** CNN to classify if an image is a dog or a cat.
+- [View Project](https://github.com/Samuel-Mason-git/Recent-Projects/blob/main/CNN_Computer_Vision_Binary_Cats_and_Dogs.ipynb)
+
 ### Multi-Label Image Classification Neural Network (Fruit Image Classification)
 
 - **Description:** Deep Neural Network to reshape, convert to array, classify and predict images of fruits into 10 different categories.
 - [View Project](https://github.com/Samuel-Mason-git/Recent-Projects/blob/main/Multi_Label_Fruit_Image_Classification.ipynb)
-
-### Binary Computer Vision Cats and Dog Classification
-- **Description:** CNN to classify if an image is a dog or a cat.
-- [View Project](https://github.com/Samuel-Mason-git/Recent-Projects/blob/main/CNN_Computer_Vision_Binary_Cats_and_Dogs.ipynb)
-
-### Multi-Label Image Classification Convolutional neural network and Data Augmentation (Fruit Image Classification)
-
-- **Description:** An extension of the previous Image Classification model to use a convolutional neural network to predict images of fruits into 10 different categories.
-- [View Project](https://github.com/Samuel-Mason-git/Recent-Projects/blob/main/CNN_Multi_Label_Fruit_with_Data_Augmentation.ipynb)
 
 ### Neural Network Gender Binary Classification
 
