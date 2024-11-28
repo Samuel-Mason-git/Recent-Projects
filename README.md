@@ -1,6 +1,6 @@
 # My Projects
 
-Welcome to my GitHub repository! Below you'll find a categorized list of projects I've worked on. Feel free to explore them.
+Welcome to my GitHub repository! Below you'll find a categorised list of projects I've worked on. Feel free to explore them.
 
 ## Machine Learning (ML)
 
