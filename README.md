@@ -40,6 +40,11 @@ Welcome to my GitHub repository! Below you'll find a categorised list of project
 - **Description:** Project involving webscraping of a lecturers publications, and Bayesian network analysis for a finance dataset.
 - [View Project](https://github.com/Samuel-Mason-git/Recent-Projects/blob/main/Webscraping%20and%20Bayesian%20Network%20for%20Finance%20Dataset)
 
+## Web Application
+
+- **Description:** A gym management web app utilising Django. Manages numerous gyms with manytomany gym owners, member profile pages, gym dashboard pages, and gym owner dashboard pages, a check-in feature for each gym for members to sign in and sign out with the visit informations on the members dashboard.
+- [View Project](https://github.com/Samuel-Mason-git/Gym_management)
+
 ## Algorithms and Data Structures
 
 ### Binary Search
