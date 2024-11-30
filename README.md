@@ -2,6 +2,8 @@
 
 Welcome to my GitHub repository! Below you'll find a categorised list of projects I've worked on. Feel free to explore them.
 
+# Previous Projects (Pre 2024)
+
 ## Machine Learning (ML)
 
 ### NLP - Food Reviews - Bayes, KNN, CNN, FFN, RNN
