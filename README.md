@@ -1,3 +1,6 @@
+Welcome to my GitHub repository! Below you'll find a categorised list of projects I've worked on. Feel free to explore them.
+
+
 # My Projects
 
 ### Binary Computer Vision Classification: Exploring CNNs, Xception, and MobileNetV2 Models
@@ -8,7 +11,6 @@
 
 
 
-Welcome to my GitHub repository! Below you'll find a categorised list of projects I've worked on. Feel free to explore them.
 
 # Previous Projects (Pre 2024)
 
