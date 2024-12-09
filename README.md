@@ -1,5 +1,13 @@
 # My Projects
 
+### Classifying Cats and Dogs Using Computer Vision and Deep Learning Models
+
+- **Description:** This project explores the use of various deep learning architectures, from basic CNNs to advanced transfer learning models like MobileNetV2, to accurately classify images as either cats or dogs. It emphasises the importance of data preprocessing, model selection, and fine-tuning in improving classification performance.
+- [View Project][(https://github.com/Samuel-Mason-git/Recent-Projects/blob/main/CNN_Multi_Label_Fruit_with_Data_Augmentation.ipynb)](https://github.com/Samuel-Mason-git/Recent-Projects/blob/main/Computer%20Vision%20Binary%20Classification.ipynb)]
+
+
+
+
 Welcome to my GitHub repository! Below you'll find a categorised list of projects I've worked on. Feel free to explore them.
 
 # Previous Projects (Pre 2024)
