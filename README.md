@@ -3,13 +3,18 @@ Welcome to my GitHub repository! Below you'll find a categorised list of project
 
 # My Projects
 
+## Machine Learning
+
 ### Binary Computer Vision Classification: Exploring CNNs, Xception, and MobileNetV2 Models
 
 - **Description:** This project explores the use of various deep learning architectures, from basic CNNs to advanced transfer learning models like MobileNetV2, to accurately classify images as either cats or dogs. It emphasises the importance of data preprocessing, model selection, and fine-tuning in improving classification performance.
 - [View Project](https://github.com/Samuel-Mason-git/Recent-Projects/blob/main/Computer%20Vision%20Binary%20Classification.ipynb)
 
 
+## Web Application
 
+- **Description:** A gym management web app utilising Django. Manages numerous gyms with manytomany gym owners, member profile pages, gym dashboard pages, and gym owner dashboard pages, a check-in feature for each gym for members to sign in and sign out with the visit informations on the members dashboard.
+- [View Project](https://github.com/Samuel-Mason-git/Gym_management)
 
 
 # Previous Projects (Pre 2024)
@@ -52,7 +57,4 @@ Welcome to my GitHub repository! Below you'll find a categorised list of project
 - **Description:** Project involving webscraping of a lecturers publications, and Bayesian network analysis for a finance dataset.
 - [View Project](https://github.com/Samuel-Mason-git/Recent-Projects/blob/main/Webscraping%20and%20Bayesian%20Network%20for%20Finance%20Dataset)
 
-## Web Application
 
-- **Description:** A gym management web app utilising Django. Manages numerous gyms with manytomany gym owners, member profile pages, gym dashboard pages, and gym owner dashboard pages, a check-in feature for each gym for members to sign in and sign out with the visit informations on the members dashboard.
-- [View Project](https://github.com/Samuel-Mason-git/Gym_management)
