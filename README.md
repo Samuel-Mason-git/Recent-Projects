@@ -10,6 +10,10 @@ Welcome to my GitHub repository! Below you'll find a categorised list of project
 - **Description:** This project explores the use of various deep learning architectures, from basic CNNs to advanced transfer learning models like MobileNetV2, to accurately classify images as either cats or dogs. It emphasises the importance of data preprocessing, model selection, and fine-tuning in improving classification performance.
 - [View Project](https://github.com/Samuel-Mason-git/Recent-Projects/blob/main/Computer%20Vision%20Binary%20Classification.ipynb)
 
+### Binary MRI Classification for Brain Tumor Detection Using Transfer Learning with ImageNet
+
+- **Description:** Transfer learning with ImageNet pre-trained models to classify brain MRI images for tumor detection. Two approaches were explored: a base model without fine-tuning and a fine-tuned model. Both achieved high accuracy and F1-scores, with fine-tuning reducing errors and delivering more robust predictions.
+- [View Project](https://github.com/Samuel-Mason-git/Recent-Projects/blob/main/Binary_Imagenet.ipynb)
 
 ## Web Application
 
