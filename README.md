@@ -15,6 +15,11 @@ Welcome to my GitHub repository! Below you'll find a categorised list of project
 - **Description:** Transfer learning with ImageNet pre-trained models to classify brain MRI images for tumor detection. Two approaches were explored: a base model without fine-tuning and a fine-tuned model. Both achieved high accuracy and F1-scores, with fine-tuning reducing errors and delivering more robust predictions.
 - [View Project](https://github.com/Samuel-Mason-git/Recent-Projects/blob/main/Binary_Imagenet.ipynb)
 
+### Single-label Classification - Fruit and Veg Image Recognition - Custom CNN, Transfer Learning and Fine Tuning
+
+- **Description:** his project involves building an image recognition model for classifying 36 different categories of fruits and vegetables, with approximately 80 images per class. It combines Custom CNN architecture, Transfer Learning using pre-trained weights from ImageNet, and Fine-Tuning techniques to improve the model's performance.
+- [View Project](https://github.com/Samuel-Mason-git/Recent-Projects/blob/main/Single_Label_Classification.ipynb)
+
 ## Web Application
 
 - **Description:** A gym management web app utilising Django. Manages numerous gyms with manytomany gym owners, member profile pages, gym dashboard pages, and gym owner dashboard pages, a check-in feature for each gym for members to sign in and sign out with the visit informations on the members dashboard.
