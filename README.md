@@ -3,6 +3,11 @@ Welcome to my GitHub repository! Below you'll find a categorised list of project
 
 # My Projects
 
+## Dissertation
+#### Analysis of Opioid Analgesic Prescriptions in England; Significant Features and Identification of Local Tier Authority Residual Outliers utilising Linear Regression
+- **Description:** My dissertation analysed England's opioid epidemic using advanced statistical and machine learning techniques applied to big data. This involved handling unclean datasets, employing stepwise regression for variable refinement, using random forests and deep neural networks to address missing values, conducting multivariate linear modelling for feature analysis, and performing linear regression with residual analysis to derive meaningful insights.
+- [View Project](https://github.com/Samuel-Mason-git/Recent-Projects/blob/main/Diss.pdf)
+
 ## Machine Learning
 
 ### Computer Vision
